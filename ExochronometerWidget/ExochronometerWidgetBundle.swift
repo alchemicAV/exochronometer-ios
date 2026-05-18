@@ -4,7 +4,7 @@ import WidgetKit
 @main
 struct ExochronometerWidgetBundle: WidgetBundle {
     var body: some Widget {
-        LargeChronometerWidget()
+        HomeChronometerWidget()
         LockScreenChronometerWidget()
     }
 }

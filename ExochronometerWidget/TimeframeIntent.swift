@@ -1,15 +1,15 @@
 import AppIntents
 import ExochronometerCore
 
-enum WidgetTimeframe: String, AppEnum {
+public enum WidgetTimeframe: String, AppEnum, CaseIterable {
     case year
     case moon
     case quarterMoon
     case day
     case hour
 
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Timeframe"
-    static var caseDisplayRepresentations: [WidgetTimeframe: DisplayRepresentation] = [
+    public static var typeDisplayRepresentation: TypeDisplayRepresentation = "Timeframe"
+    public static var caseDisplayRepresentations: [WidgetTimeframe: DisplayRepresentation] = [
         .year:        "One Year",
         .moon:        "Moon Cycle",
         .quarterMoon: "Quarter Moon",
@@ -17,7 +17,7 @@ enum WidgetTimeframe: String, AppEnum {
         .hour:        "One Hour",
     ]
 
-    var timeFrame: TimeFrame {
+    public var timeFrame: TimeFrame {
         switch self {
         case .year:        return .year
         case .moon:        return .moon
@@ -28,16 +28,16 @@ enum WidgetTimeframe: String, AppEnum {
     }
 }
 
-struct TimeframeConfigurationIntent: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource = "Choose Timeframe"
-    static var description = IntentDescription("Pick which time cycle this widget displays.")
+public struct TimeframeConfigurationIntent: WidgetConfigurationIntent {
+    public static var title: LocalizedStringResource = "Choose Timeframe"
+    public static var description = IntentDescription("Pick which time cycle this widget displays.")
 
     @Parameter(title: "Timeframe", default: .day)
-    var timeframe: WidgetTimeframe
+    public var timeframe: WidgetTimeframe
 
-    init() {}
-
-    init(timeframe: WidgetTimeframe) {
-        self.timeframe = timeframe
+    public static var parameterSummary: some ParameterSummary {
+        Summary("Show \(\.$timeframe)")
     }
+
+    public init() {}
 }

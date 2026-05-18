@@ -64,3 +64,37 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.alchemicav.exochronometer.Widget
         INFOPLIST_FILE: ExochronometerWidget/Info.plist
         CODE_SIGN_ENTITLEMENTS: ExochronometerWidget/ExochronometerWidget.entitlements
+
+schemes:
+  Exochronometer:
+    build:
+      targets:
+        Exochronometer: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+  ExochronometerWidget:
+    build:
+      targets:
+        ExochronometerWidget: all
+        Exochronometer: [run]
+    run:
+      config: Debug
+      executable: Exochronometer
+      environmentVariables:
+        - variable: _XCWidgetKind
+          value: HomeChronometerWidget
+          isEnabled: true
+        - variable: _XCWidgetFamily
+          value: systemSmall
+          isEnabled: true
+        - variable: _XCWidgetDefaultView
+          value: timeline
+          isEnabled: true

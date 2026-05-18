@@ -1,0 +1,629 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		170D06A43A62E0E387FB9782 /* TimeframeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24D3AA7174A3C6B07A91483 /* TimeframeIntent.swift */; };
+		2B82077D9C09C69D6734672D /* ExochronometerWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD3D520F0D9F61A3B0C41EF4 /* ExochronometerWidgetBundle.swift */; };
+		2FABED19F09BCBEECEF39D88 /* TimeFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CE9E3E3435F27EF050E346F /* TimeFrame.swift */; };
+		3358DE7D302C8C6E81F27F8C /* Geometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A27B0CE5A2E4893F5C2C13D /* Geometry.swift */; };
+		347B652AAE13519A8EF39702 /* ExochronometerCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 24C681C5A1DB364A26A8826C /* ExochronometerCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		433EECB0DDE6247131331CC1 /* LargeChronometerWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 944D544BDFAEDDAE3B9F6D33 /* LargeChronometerWidget.swift */; };
+		44300844A0C56FFD8D20E788 /* MoonPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 925975E213F9F2691BB94EE4 /* MoonPhase.swift */; };
+		714F4FFE899086B7BEE2E16C /* ExochronometerCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 24C681C5A1DB364A26A8826C /* ExochronometerCore.framework */; };
+		8AE9391777F5F85CF125F999 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FD989EB97182B92482035C74 /* Assets.xcassets */; };
+		A631D3AED47B434EF0867634 /* TimeCircleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D79A0121D1CFD1726F35628 /* TimeCircleView.swift */; };
+		A6893528E4CB123C9DDACAF3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC998857CFFE797879BD7F26 /* ContentView.swift */; };
+		A904F1D09509383C3EC03944 /* ChronometerProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B09E4F65ECC76CFF0CCFBC /* ChronometerProvider.swift */; };
+		B146C88187AEB7E5835161DD /* ExochronometerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFDC26854ED88F1E6545EF85 /* ExochronometerApp.swift */; };
+		D701F6A5AF712BAB0569121C /* ExochronometerWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 81DC3ECB6E081274EFCE6722 /* ExochronometerWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DABC36B7F7694A0867615FD4 /* LockScreenChronometerWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFD3BBDBDDE8F5248C9BFDA /* LockScreenChronometerWidget.swift */; };
+		F88492ECD67B7B783C060A68 /* ExochronometerCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 24C681C5A1DB364A26A8826C /* ExochronometerCore.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		169F3598CA29635ABE53E9B7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DE6F745B7D6E6DBB7013DCC5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 15953295BCC57AE069677D41;
+			remoteInfo = ExochronometerCore;
+		};
+		55694BB86F9D031551EF86FC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DE6F745B7D6E6DBB7013DCC5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9ACF40505E24418FF4AA6885;
+			remoteInfo = ExochronometerWidget;
+		};
+		73FE73210C0FCE409F714865 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DE6F745B7D6E6DBB7013DCC5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 15953295BCC57AE069677D41;
+			remoteInfo = ExochronometerCore;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		3E582D3AA68F52C1C7453B04 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				D701F6A5AF712BAB0569121C /* ExochronometerWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		50C576B6842B8A840A3BE7AC /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				347B652AAE13519A8EF39702 /* ExochronometerCore.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		0CFD3BBDBDDE8F5248C9BFDA /* LockScreenChronometerWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenChronometerWidget.swift; sourceTree = "<group>"; };
+		24C681C5A1DB364A26A8826C /* ExochronometerCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ExochronometerCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		2A27B0CE5A2E4893F5C2C13D /* Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geometry.swift; sourceTree = "<group>"; };
+		4CE9E3E3435F27EF050E346F /* TimeFrame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFrame.swift; sourceTree = "<group>"; };
+		5B2F8868517C534A99280D18 /* ExochronometerWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ExochronometerWidget.entitlements; sourceTree = "<group>"; };
+		73FE7EB24A12A239366392B4 /* Exochronometer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Exochronometer.entitlements; sourceTree = "<group>"; };
+		81DC3ECB6E081274EFCE6722 /* ExochronometerWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ExochronometerWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		8D79A0121D1CFD1726F35628 /* TimeCircleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeCircleView.swift; sourceTree = "<group>"; };
+		8EBADADCD5B048AEC391902F /* Exochronometer.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Exochronometer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		925975E213F9F2691BB94EE4 /* MoonPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoonPhase.swift; sourceTree = "<group>"; };
+		944D544BDFAEDDAE3B9F6D33 /* LargeChronometerWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LargeChronometerWidget.swift; sourceTree = "<group>"; };
+		B24D3AA7174A3C6B07A91483 /* TimeframeIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeframeIntent.swift; sourceTree = "<group>"; };
+		B4B09E4F65ECC76CFF0CCFBC /* ChronometerProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChronometerProvider.swift; sourceTree = "<group>"; };
+		CD3D520F0D9F61A3B0C41EF4 /* ExochronometerWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExochronometerWidgetBundle.swift; sourceTree = "<group>"; };
+		D7644D6A63A350F016A4F160 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		DEE12FFD03B29E25A9425616 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		EFDC26854ED88F1E6545EF85 /* ExochronometerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExochronometerApp.swift; sourceTree = "<group>"; };
+		FC998857CFFE797879BD7F26 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		FD989EB97182B92482035C74 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1EDA09E37D2525C6A2A3FDD7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F88492ECD67B7B783C060A68 /* ExochronometerCore.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6BE0350B29E8C049ECD6AB41 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				714F4FFE899086B7BEE2E16C /* ExochronometerCore.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1A9D17DA271D4A431060CE32 /* ExochronometerWidget */ = {
+			isa = PBXGroup;
+			children = (
+				B4B09E4F65ECC76CFF0CCFBC /* ChronometerProvider.swift */,
+				5B2F8868517C534A99280D18 /* ExochronometerWidget.entitlements */,
+				CD3D520F0D9F61A3B0C41EF4 /* ExochronometerWidgetBundle.swift */,
+				DEE12FFD03B29E25A9425616 /* Info.plist */,
+				944D544BDFAEDDAE3B9F6D33 /* LargeChronometerWidget.swift */,
+				0CFD3BBDBDDE8F5248C9BFDA /* LockScreenChronometerWidget.swift */,
+				B24D3AA7174A3C6B07A91483 /* TimeframeIntent.swift */,
+			);
+			path = ExochronometerWidget;
+			sourceTree = "<group>";
+		};
+		3BF56FB3CE2384E6FBBC6EEA /* ExochronometerCore */ = {
+			isa = PBXGroup;
+			children = (
+				2A27B0CE5A2E4893F5C2C13D /* Geometry.swift */,
+				925975E213F9F2691BB94EE4 /* MoonPhase.swift */,
+				4CE9E3E3435F27EF050E346F /* TimeFrame.swift */,
+			);
+			path = ExochronometerCore;
+			sourceTree = "<group>";
+		};
+		627E23CB65A7EC85AB37F5C9 = {
+			isa = PBXGroup;
+			children = (
+				9CC4FE44ABBEBBC07A137E34 /* Exochronometer */,
+				3BF56FB3CE2384E6FBBC6EEA /* ExochronometerCore */,
+				1A9D17DA271D4A431060CE32 /* ExochronometerWidget */,
+				FF1238ACFE19281242D40768 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		9CC4FE44ABBEBBC07A137E34 /* Exochronometer */ = {
+			isa = PBXGroup;
+			children = (
+				FD989EB97182B92482035C74 /* Assets.xcassets */,
+				FC998857CFFE797879BD7F26 /* ContentView.swift */,
+				73FE7EB24A12A239366392B4 /* Exochronometer.entitlements */,
+				EFDC26854ED88F1E6545EF85 /* ExochronometerApp.swift */,
+				D7644D6A63A350F016A4F160 /* Info.plist */,
+				8D79A0121D1CFD1726F35628 /* TimeCircleView.swift */,
+			);
+			path = Exochronometer;
+			sourceTree = "<group>";
+		};
+		FF1238ACFE19281242D40768 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8EBADADCD5B048AEC391902F /* Exochronometer.app */,
+				24C681C5A1DB364A26A8826C /* ExochronometerCore.framework */,
+				81DC3ECB6E081274EFCE6722 /* ExochronometerWidget.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		15953295BCC57AE069677D41 /* ExochronometerCore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0EDD1FD74C103AA0F8A26F16 /* Build configuration list for PBXNativeTarget "ExochronometerCore" */;
+			buildPhases = (
+				D45F105AC98578ACC370B9C0 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ExochronometerCore;
+			packageProductDependencies = (
+			);
+			productName = ExochronometerCore;
+			productReference = 24C681C5A1DB364A26A8826C /* ExochronometerCore.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		761AE25CF7819194216539F8 /* Exochronometer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2DBF4FCC14FFB9E690B41044 /* Build configuration list for PBXNativeTarget "Exochronometer" */;
+			buildPhases = (
+				AABADA80A27BC99B8064DC5C /* Sources */,
+				859E1102AD6E6AA847754696 /* Resources */,
+				1EDA09E37D2525C6A2A3FDD7 /* Frameworks */,
+				3E582D3AA68F52C1C7453B04 /* Embed Foundation Extensions */,
+				50C576B6842B8A840A3BE7AC /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				041D1D45612971D6474B30ED /* PBXTargetDependency */,
+				62040F17A4A1730949B359FF /* PBXTargetDependency */,
+			);
+			name = Exochronometer;
+			packageProductDependencies = (
+			);
+			productName = Exochronometer;
+			productReference = 8EBADADCD5B048AEC391902F /* Exochronometer.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9ACF40505E24418FF4AA6885 /* ExochronometerWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E10692F67610B84C22D3B53D /* Build configuration list for PBXNativeTarget "ExochronometerWidget" */;
+			buildPhases = (
+				B5102D30B6FCD01D1A7583E3 /* Sources */,
+				6BE0350B29E8C049ECD6AB41 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0F58ACA129C425DC63A500A1 /* PBXTargetDependency */,
+			);
+			name = ExochronometerWidget;
+			packageProductDependencies = (
+			);
+			productName = ExochronometerWidget;
+			productReference = 81DC3ECB6E081274EFCE6722 /* ExochronometerWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DE6F745B7D6E6DBB7013DCC5 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					15953295BCC57AE069677D41 = {
+						ProvisioningStyle = Automatic;
+					};
+					761AE25CF7819194216539F8 = {
+						ProvisioningStyle = Automatic;
+					};
+					9ACF40505E24418FF4AA6885 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = CDCD91D657E11E4826952056 /* Build configuration list for PBXProject "Exochronometer" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 627E23CB65A7EC85AB37F5C9;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = FF1238ACFE19281242D40768 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				761AE25CF7819194216539F8 /* Exochronometer */,
+				15953295BCC57AE069677D41 /* ExochronometerCore */,
+				9ACF40505E24418FF4AA6885 /* ExochronometerWidget */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		859E1102AD6E6AA847754696 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8AE9391777F5F85CF125F999 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AABADA80A27BC99B8064DC5C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A6893528E4CB123C9DDACAF3 /* ContentView.swift in Sources */,
+				B146C88187AEB7E5835161DD /* ExochronometerApp.swift in Sources */,
+				A631D3AED47B434EF0867634 /* TimeCircleView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B5102D30B6FCD01D1A7583E3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A904F1D09509383C3EC03944 /* ChronometerProvider.swift in Sources */,
+				2B82077D9C09C69D6734672D /* ExochronometerWidgetBundle.swift in Sources */,
+				433EECB0DDE6247131331CC1 /* LargeChronometerWidget.swift in Sources */,
+				DABC36B7F7694A0867615FD4 /* LockScreenChronometerWidget.swift in Sources */,
+				170D06A43A62E0E387FB9782 /* TimeframeIntent.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D45F105AC98578ACC370B9C0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3358DE7D302C8C6E81F27F8C /* Geometry.swift in Sources */,
+				44300844A0C56FFD8D20E788 /* MoonPhase.swift in Sources */,
+				2FABED19F09BCBEECEF39D88 /* TimeFrame.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		041D1D45612971D6474B30ED /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 15953295BCC57AE069677D41 /* ExochronometerCore */;
+			targetProxy = 73FE73210C0FCE409F714865 /* PBXContainerItemProxy */;
+		};
+		0F58ACA129C425DC63A500A1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 15953295BCC57AE069677D41 /* ExochronometerCore */;
+			targetProxy = 169F3598CA29635ABE53E9B7 /* PBXContainerItemProxy */;
+		};
+		62040F17A4A1730949B359FF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9ACF40505E24418FF4AA6885 /* ExochronometerWidget */;
+			targetProxy = 55694BB86F9D031551EF86FC /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		2ACAF814837C2142AFBF9952 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.alchemicav.exochronometer.Core;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Debug;
+		};
+		3933612F07DA01A73E5DE0E9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Exochronometer/Exochronometer.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Exochronometer/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.alchemicav.exochronometer;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		682E8E0131D0422E40F6A4C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.alchemicav.exochronometer.Core;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		AC182FF879C913D118450C48 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ExochronometerWidget/ExochronometerWidget.entitlements;
+				INFOPLIST_FILE = ExochronometerWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.alchemicav.exochronometer.Widget;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B6ADDE596F2043307D94F174 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Exochronometer/Exochronometer.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Exochronometer/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.alchemicav.exochronometer;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		C1E282B5F9FD9EB7C240AF39 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ExochronometerWidget/ExochronometerWidget.entitlements;
+				INFOPLIST_FILE = ExochronometerWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.alchemicav.exochronometer.Widget;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C63C710517973E4BB2497E6D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.10;
+			};
+			name = Debug;
+		};
+		CB7DB8C65130906D6E126D78 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.10;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0EDD1FD74C103AA0F8A26F16 /* Build configuration list for PBXNativeTarget "ExochronometerCore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2ACAF814837C2142AFBF9952 /* Debug */,
+				682E8E0131D0422E40F6A4C7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		2DBF4FCC14FFB9E690B41044 /* Build configuration list for PBXNativeTarget "Exochronometer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B6ADDE596F2043307D94F174 /* Debug */,
+				3933612F07DA01A73E5DE0E9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		CDCD91D657E11E4826952056 /* Build configuration list for PBXProject "Exochronometer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C63C710517973E4BB2497E6D /* Debug */,
+				CB7DB8C65130906D6E126D78 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E10692F67610B84C22D3B53D /* Build configuration list for PBXNativeTarget "ExochronometerWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C1E282B5F9FD9EB7C240AF39 /* Debug */,
+				AC182FF879C913D118450C48 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = DE6F745B7D6E6DBB7013DCC5 /* Project object */;
+}

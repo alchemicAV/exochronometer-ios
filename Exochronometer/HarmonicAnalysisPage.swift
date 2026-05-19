@@ -54,11 +54,17 @@ struct HarmonicAnalysisPage: View {
     @StateObject private var audio = HarmonicAudio(scales: [23])
     @State private var fundamentalsOff: Bool = false
     @State private var scaleMode: ScaleMode = .lo
+    @State private var waveform: Waveform = .sine
+    @State private var volume: Double = 0.7
 
     var body: some View {
         VStack(spacing: 10) {
             header
-            controls
+            controlsRow1
+                .padding(.horizontal, 20)
+            waveformRow
+                .padding(.horizontal, 20)
+            volumeRow
                 .padding(.horizontal, 20)
 
             SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
@@ -77,7 +83,7 @@ struct HarmonicAnalysisPage: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.horizontal, 16)
 
-                    OscilloscopeView(tones: displayedTones)
+                    OscilloscopeView(tones: displayedTones, waveform: waveform)
                         .frame(height: 90)
                         .padding(.horizontal, 16)
                         .padding(.bottom, 16)
@@ -87,6 +93,8 @@ struct HarmonicAnalysisPage: View {
                 }
                 .onAppear {
                     pushAudio(active: active)
+                    audio.volume = volume
+                    audio.waveform = waveform
                 }
             }
         }
@@ -120,7 +128,7 @@ struct HarmonicAnalysisPage: View {
         return "\(scaleText)  ·  minute excluded"
     }
 
-    private var controls: some View {
+    private var controlsRow1: some View {
         HStack(spacing: 10) {
             toggleButton(
                 label: audio.isRunning ? "AUDIO ON" : "AUDIO OFF",
@@ -149,6 +157,49 @@ struct HarmonicAnalysisPage: View {
             }
 
             Spacer()
+        }
+    }
+
+    private var waveformRow: some View {
+        HStack(spacing: 6) {
+            ForEach(Waveform.allCases) { wave in
+                Button {
+                    waveform = wave
+                    audio.waveform = wave
+                } label: {
+                    Text(wave.label)
+                        .font(.system(size: 9, design: .monospaced))
+                        .tracking(2)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .foregroundStyle(waveform == wave ? .black : .white.opacity(0.7))
+                        .background(
+                            Capsule().fill(waveform == wave ? Color.white : .clear)
+                        )
+                        .overlay(
+                            Capsule().stroke(.white.opacity(0.3), lineWidth: 0.5)
+                        )
+                }
+            }
+            Spacer()
+        }
+    }
+
+    private var volumeRow: some View {
+        HStack(spacing: 10) {
+            Text("VOL")
+                .font(.system(size: 9, design: .monospaced))
+                .tracking(2)
+                .foregroundStyle(.white.opacity(0.55))
+            Slider(value: $volume, in: 0...1)
+                .tint(.white.opacity(0.7))
+                .onChange(of: volume) { _, new in
+                    audio.volume = new
+                }
+            Text("\(Int(volume * 100))%")
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.7))
+                .frame(width: 40, alignment: .trailing)
         }
     }
 
@@ -403,6 +454,7 @@ private struct VerticalSpectrum: View {
 
 private struct OscilloscopeView: View {
     let tones: [SpectrumTone]
+    let waveform: Waveform
     private let windowSeconds: Double = 0.030
 
     var body: some View {
@@ -439,7 +491,8 @@ private struct OscilloscopeView: View {
             let t = Double(i) / Double(samples) * windowSeconds
             var s: Double = 0
             for tone in tones {
-                s += sin(2.0 * .pi * tone.frequency * t) * tone.amplitude
+                let phase = 2.0 * .pi * tone.frequency * t
+                s += waveform.sample(phase: phase) * tone.amplitude
             }
             values[i] = s
             if abs(s) > peak { peak = abs(s) }

@@ -1,4 +1,5 @@
 import AppIntents
+import SwiftData
 import SwiftUI
 
 @main
@@ -8,5 +9,6 @@ struct ExochronometerApp: App {
             ContentView()
                 .preferredColorScheme(.dark)
         }
+        .modelContainer(for: JournalNote.self)
     }
 }

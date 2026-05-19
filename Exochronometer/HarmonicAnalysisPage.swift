@@ -2,13 +2,13 @@ import SwiftUI
 import ExochronometerCore
 
 struct HarmonicAnalysisPage: View {
-    private static let octaves: Int = 23
-    private let octaves: Int = HarmonicAnalysisPage.octaves
-    private let minFreqHz: Double = 0.1
-    private let maxFreqHz: Double = 50_000
-
-    @StateObject private var audio = HarmonicAudio(octaves: HarmonicAnalysisPage.octaves)
+    @StateObject private var audio = HarmonicAudio(octaves: 23)
     @State private var fundamentalsOff: Bool = false
+    @State private var highOctave: Bool = false
+
+    private var octaves: Int { highOctave ? 26 : 23 }
+    private var minFreqHz: Double { highOctave ? 1.0 : 0.1 }
+    private var maxFreqHz: Double { highOctave ? 200_000.0 : 50_000.0 }
 
     var body: some View {
         VStack(spacing: 10) {
@@ -82,6 +82,14 @@ struct HarmonicAnalysisPage: View {
                 active: !fundamentalsOff
             ) {
                 fundamentalsOff.toggle()
+            }
+
+            toggleButton(
+                label: highOctave ? "2^26" : "2^23",
+                active: highOctave
+            ) {
+                highOctave.toggle()
+                audio.reconfigure(octaves: octaves)
             }
 
             Spacer()
@@ -183,6 +191,36 @@ struct SpectrumTone: Identifiable {
     var isFundamental: Bool { divisions == 1 }
 }
 
+private func compactTimeframeName(_ tf: TimeFrame) -> String {
+    switch tf {
+    case .year:        return "YEAR"
+    case .moon:        return "MOON"
+    case .quarterMoon: return "QTR"
+    case .day:         return "DAY"
+    case .hour:        return "HOUR"
+    case .minute:      return "MIN"
+    }
+}
+
+private func decadeValues(min: Double, max: Double) -> [Double] {
+    let hi = log10(max)
+    var values: [Double] = []
+    var n = Int(floor(log10(min)))
+    while pow(10.0, Double(n)) < min - 1e-12 { n += 1 }
+    while Double(n) <= hi + 1e-12 {
+        values.append(pow(10.0, Double(n)))
+        n += 1
+    }
+    return values
+}
+
+private func decadeLabel(_ value: Double) -> String {
+    if value >= 1_000_000 { return "\(Int(value / 1_000_000))M" }
+    if value >= 1_000     { return "\(Int(value / 1_000))k" }
+    if value >= 1         { return "\(Int(value))" }
+    return String(format: "%g", value)
+}
+
 private struct VerticalSpectrum: View {
     let tones: [SpectrumTone]
     let minFreqHz: Double
@@ -204,10 +242,11 @@ private struct VerticalSpectrum: View {
         let baselineX: CGFloat = axisWidth + 6
         let labelX: CGFloat = axisWidth + 6 + 140 + 8
         let maxBarWidth: CGFloat = 140
+        let decades = decadeValues(min: minFreqHz, max: maxFreqHz)
 
         drawAudibleBand(in: &ctx, size: size, logMin: logMin, range: range, baselineX: baselineX)
-        drawGrid(in: &ctx, size: size, logMin: logMin, range: range, axisWidth: axisWidth, baselineX: baselineX)
-        drawAxisLabels(in: &ctx, size: size, logMin: logMin, range: range)
+        drawGrid(in: &ctx, size: size, logMin: logMin, range: range, baselineX: baselineX, decades: decades)
+        drawAxisLabels(in: &ctx, size: size, logMin: logMin, range: range, decades: decades)
         drawTones(
             in: &ctx,
             size: size,
@@ -231,8 +270,7 @@ private struct VerticalSpectrum: View {
         ctx.fill(Path(band), with: .color(.white.opacity(0.04)))
     }
 
-    private func drawGrid(in ctx: inout GraphicsContext, size: CGSize, logMin: Double, range: Double, axisWidth: CGFloat, baselineX: CGFloat) {
-        let decades: [Double] = [0.1, 1, 10, 100, 1_000, 10_000]
+    private func drawGrid(in ctx: inout GraphicsContext, size: CGSize, logMin: Double, range: Double, baselineX: CGFloat, decades: [Double]) {
         for d in decades {
             let y = mapY(d, logMin: logMin, range: range, height: size.height)
             var p = Path()
@@ -246,17 +284,10 @@ private struct VerticalSpectrum: View {
         ctx.stroke(spine, with: .color(.white.opacity(0.3)), lineWidth: 0.5)
     }
 
-    private func drawAxisLabels(in ctx: inout GraphicsContext, size: CGSize, logMin: Double, range: Double) {
-        let entries: [(Double, String)] = [
-            (0.1, "0.1"),
-            (1, "1 Hz"),
-            (10, "10"),
-            (100, "100"),
-            (1_000, "1k"),
-            (10_000, "10k"),
-        ]
-        for (hz, label) in entries {
-            let y = mapY(hz, logMin: logMin, range: range, height: size.height)
+    private func drawAxisLabels(in ctx: inout GraphicsContext, size: CGSize, logMin: Double, range: Double, decades: [Double]) {
+        for (i, d) in decades.enumerated() {
+            let y = mapY(d, logMin: logMin, range: range, height: size.height)
+            let label = i == 0 ? "\(decadeLabel(d)) Hz" : decadeLabel(d)
             let text = Text(label)
                 .font(.system(size: 8, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.45))
@@ -295,9 +326,11 @@ private struct VerticalSpectrum: View {
             )
             ctx.fill(Path(ellipseIn: dot), with: .color(color))
 
+            let name = compactTimeframeName(tone.timeframe)
+            let prefix = tone.isFundamental ? name : "\(name)×\(tone.divisions)"
             let freqLabel = FrequencyMath.format(tone.frequency)
             let stateSuffix = tone.isFundamental ? "" : "  ·  \(tone.state.label)"
-            let label = Text("\(freqLabel)\(stateSuffix)")
+            let label = Text("\(prefix)  ·  \(freqLabel)\(stateSuffix)")
                 .font(.system(size: 8, design: .monospaced))
                 .foregroundStyle(.white.opacity(tone.isFundamental ? 0.75 : 0.55))
             ctx.draw(label, at: CGPoint(x: labelX, y: y), anchor: .leading)

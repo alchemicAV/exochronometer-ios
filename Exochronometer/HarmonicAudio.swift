@@ -77,6 +77,41 @@ final class HarmonicAudio: ObservableObject {
         lock.unlock()
     }
 
+    /// Rebuild the oscillator bank at a new octave factor, preserving each
+    /// tone's amplitude and phase across the change so audio keeps playing
+    /// without a click.
+    func reconfigure(octaves: Int) {
+        lock.lock()
+        let factor = pow(2.0, Double(octaves))
+        var prior: [ToneID: Tone] = [:]
+        for t in tones { prior[t.id] = t }
+
+        var rebuilt: [Tone] = []
+        for tf in TimeFrame.allCases where tf != .minute {
+            let fundamental = (1.0 / tf.cycleDuration) * factor
+            let fundId = ToneID(timeframe: tf, divisions: 1)
+            let oldFund = prior[fundId]
+            rebuilt.append(Tone(
+                id: fundId,
+                frequency: fundamental,
+                amplitude: oldFund?.amplitude ?? 0,
+                phase: oldFund?.phase ?? 0
+            ))
+            for div in 3...8 {
+                let id = ToneID(timeframe: tf, divisions: div)
+                let old = prior[id]
+                rebuilt.append(Tone(
+                    id: id,
+                    frequency: fundamental * Double(div),
+                    amplitude: old?.amplitude ?? 0,
+                    phase: old?.phase ?? 0
+                ))
+            }
+        }
+        tones = rebuilt
+        lock.unlock()
+    }
+
     private func configureSession() {
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, mode: .default, options: [.mixWithOthers])

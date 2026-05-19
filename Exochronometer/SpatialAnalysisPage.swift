@@ -20,10 +20,10 @@ enum SpatialMode: String, CaseIterable, Identifiable {
 
     var subtitle: String {
         switch self {
-        case .lissajous:   return "fundamental pair (sin f₁τ, sin f₂τ)"
-        case .spectrogram: return "60-second rolling spectrum history"
+        case .lissajous:   return "within-timeframe pairs · ratios from active harmonics"
+        case .spectrogram: return "60-second rolling spectrum (pre-populated on entry)"
         case .chladni:     return "2D membrane modes summed by amplitude"
-        case .convergence: return "countdown to upcoming alignments"
+        case .convergence: return "time until next angular alignment (live)"
         }
     }
 }
@@ -93,7 +93,16 @@ struct SpatialAnalysisPage: View {
     }
 }
 
-// MARK: - Lissajous
+// MARK: - Lissajous (within-timeframe pairs of active tones)
+
+private func gcd(_ a: Int, _ b: Int) -> Int {
+    var x = abs(a)
+    var y = abs(b)
+    while y != 0 {
+        (x, y) = (y, x % y)
+    }
+    return x
+}
 
 private struct LissajousPair: Identifiable {
     let a: HarmonicTone
@@ -106,30 +115,51 @@ private struct LissajousView: View {
 
     var body: some View {
         SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 10.0, paused: false)) { context in
-            let tones = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
-            let fundamentals = tones.filter { $0.isFundamental }
-            let pairs = uniquePairs(fundamentals)
+            let pairs = withinTimeframePairs(at: context.date)
 
-            ScrollView {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    ForEach(pairs, id: \.id) { pair in
-                        LissajousCell(pair: pair)
+            if pairs.isEmpty {
+                emptyState
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                        ForEach(pairs) { pair in
+                            LissajousCell(pair: pair)
+                        }
                     }
+                    .padding(.top, 4)
+                    .padding(.bottom, 20)
                 }
-                .padding(.top, 4)
-                .padding(.bottom, 20)
             }
         }
     }
 
-    private func uniquePairs(_ tones: [HarmonicTone]) -> [LissajousPair] {
-        var out: [LissajousPair] = []
-        for i in 0..<tones.count {
-            for j in (i + 1)..<tones.count {
-                out.append(LissajousPair(a: tones[i], b: tones[j]))
+    private func withinTimeframePairs(at date: Date) -> [LissajousPair] {
+        let tones = HarmonicAnalysis.activeTones(at: date, scales: [scaling])
+        let grouped = Dictionary(grouping: tones, by: { $0.timeframe })
+        var pairs: [LissajousPair] = []
+        for tf in TimeFrame.allCases where tf != .minute {
+            let group = grouped[tf] ?? []
+            guard group.count >= 2 else { continue }
+            for i in 0..<group.count {
+                for j in (i + 1)..<group.count {
+                    pairs.append(LissajousPair(a: group[i], b: group[j]))
+                }
             }
         }
-        return out
+        return pairs
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 8) {
+            Text("NO ACTIVE PAIRS")
+                .font(.system(size: 11, design: .monospaced))
+                .tracking(3)
+                .foregroundStyle(.white.opacity(0.5))
+            Text("waiting for overtones to light up")
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.3))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -150,28 +180,27 @@ private struct LissajousCell: View {
             Text(label)
                 .font(.system(size: 8, design: .monospaced))
                 .tracking(1.5)
-                .foregroundStyle(.white.opacity(0.55))
+                .foregroundStyle(.white.opacity(0.7))
         }
     }
 
     private var label: String {
-        let a = nameOf(pair.a.timeframe)
-        let b = nameOf(pair.b.timeframe)
-        let r = pair.b.frequency / pair.a.frequency
-        let ratioText: String
-        if r > 100 { ratioText = String(format: "%.0f:1", r) }
-        else if r >= 1 { ratioText = String(format: "%.2f:1", r) }
-        else { ratioText = String(format: "1:%.2f", 1.0 / r) }
-        return "\(a) ↔ \(b)   \(ratioText)"
+        let tfName = nameOf(pair.a.timeframe)
+        let aDiv = pair.a.divisions
+        let bDiv = pair.b.divisions
+        let g = gcd(aDiv, bDiv)
+        let aReduced = aDiv / g
+        let bReduced = bDiv / g
+        return "\(tfName)   \(aReduced):\(bReduced)"
     }
 
     private func nameOf(_ tf: TimeFrame) -> String {
         switch tf {
-        case .year:        return "YR"
-        case .moon:        return "MN"
-        case .quarterMoon: return "QM"
-        case .day:         return "DY"
-        case .hour:        return "HR"
+        case .year:        return "YEAR"
+        case .moon:        return "MOON"
+        case .quarterMoon: return "QTR"
+        case .day:         return "DAY"
+        case .hour:        return "HOUR"
         case .minute:      return "MIN"
         }
     }
@@ -181,24 +210,30 @@ private struct LissajousCell: View {
         let cy = size.height / 2
         let r = min(size.width, size.height) / 2 - 4
 
-        // Use the higher of the two periods so we always see a full curve.
-        let slow = min(pair.a.frequency, pair.b.frequency)
-        let duration = max(0.001, 4.0 / slow)
-        let samples = 600
+        // Reduce to lowest-terms integer ratio so the Lissajous renders as
+        // the canonical closed curve for that ratio.
+        let aDiv = pair.a.divisions
+        let bDiv = pair.b.divisions
+        let g = gcd(aDiv, bDiv)
+        let m = aDiv / g
+        let n = bDiv / g
 
+        let samples = 800
         var path = Path()
         for i in 0...samples {
-            let t = Double(i) / Double(samples) * duration
-            let x = cx + CGFloat(sin(2 * .pi * pair.a.frequency * t)) * r
-            let y = cy + CGFloat(sin(2 * .pi * pair.b.frequency * t)) * r
+            let theta = Double(i) / Double(samples) * 2 * .pi
+            let x = cx + CGFloat(sin(Double(m) * theta)) * r
+            let y = cy + CGFloat(sin(Double(n) * theta)) * r
             if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
             else      { path.addLine(to: CGPoint(x: x, y: y)) }
         }
-        ctx.stroke(path, with: .color(.white.opacity(0.8)), lineWidth: 0.7)
+        let amp = (pair.a.amplitude * pair.b.amplitude)
+        let opacity = pair.a.isFundamental && pair.b.isFundamental ? 0.85 : (0.4 + 0.5 * amp)
+        ctx.stroke(path, with: .color(.white.opacity(opacity)), lineWidth: 0.7)
     }
 }
 
-// MARK: - Spectrogram
+// MARK: - Spectrogram (deterministic pre-populated history)
 
 private final class SpectrogramBuffer: ObservableObject {
     @Published private(set) var frames: [Frame] = []
@@ -209,8 +244,8 @@ private final class SpectrogramBuffer: ObservableObject {
         let tones: [HarmonicTone]
     }
 
-    private let sampleInterval: TimeInterval = 0.5
-    private let maxAge: TimeInterval = 60
+    let sampleInterval: TimeInterval = 0.5
+    let maxAge: TimeInterval = 60
 
     func sampleIfDue(at date: Date, tones: [HarmonicTone]) {
         if date.timeIntervalSince(lastSample) < sampleInterval { return }
@@ -218,6 +253,20 @@ private final class SpectrogramBuffer: ObservableObject {
         frames.append(Frame(id: date, tones: tones))
         let cutoff = date.addingTimeInterval(-maxAge)
         frames.removeAll { $0.id < cutoff }
+    }
+
+    /// Build the full history retroactively from the deterministic harmonic
+    /// math so the spectrogram is populated the instant the user enters.
+    func prePopulate(now: Date, scales: [Int]) {
+        var built: [Frame] = []
+        var t = now.addingTimeInterval(-maxAge)
+        while t <= now {
+            let tones = HarmonicAnalysis.activeTones(at: t, scales: scales)
+            built.append(Frame(id: t, tones: tones))
+            t = t.addingTimeInterval(sampleInterval)
+        }
+        frames = built
+        lastSample = now
     }
 }
 
@@ -244,7 +293,9 @@ private struct SpectrogramView: View {
                 buffer.sampleIfDue(at: newDate, tones: tones)
             }
             .onAppear {
-                buffer.sampleIfDue(at: context.date, tones: tones)
+                if buffer.frames.isEmpty {
+                    buffer.prePopulate(now: Date(), scales: [scaling])
+                }
             }
         }
     }
@@ -259,7 +310,6 @@ private struct SpectrogramView: View {
         let plotX = axisWidth
         let plotWidth = size.width - axisWidth
 
-        // Frequency axis labels (left side)
         for d in [0.1, 1.0, 10.0, 100.0, 1_000.0, 10_000.0] {
             let y = mapY(d, logMin: logMin, range: range, height: size.height)
             let text = Text(decadeLabel(d))
@@ -288,13 +338,11 @@ private struct SpectrogramView: View {
             }
         }
 
-        // Current-moment cursor on the right
         var cursor = Path()
         cursor.move(to: CGPoint(x: size.width - 1, y: 0))
         cursor.addLine(to: CGPoint(x: size.width - 1, y: size.height))
         ctx.stroke(cursor, with: .color(.white.opacity(0.4)), lineWidth: 0.5)
 
-        // Time markers along bottom
         for s in [-60.0, -45.0, -30.0, -15.0, 0.0] {
             let xFrac = 1.0 + s / windowSeconds
             if xFrac < 0 || xFrac > 1 { continue }
@@ -348,9 +396,6 @@ private struct ChladniView: View {
         let cells = Int(side / pixelStep)
         guard cells > 0 else { return }
 
-        // Map tones to (m, n) plate modes.
-        // Timeframe -> m row (year=1, moon=2, qtr=3, day=4, hour=5).
-        // Divisions -> n column (1, 3..8).
         let assignedModes: [(m: Int, n: Int, amp: Double)] = tones.map { tone in
             let m = modeIndex(for: tone.timeframe)
             let n = tone.divisions
@@ -418,7 +463,6 @@ private struct ConvergenceView: View {
     var body: some View {
         SwiftUI.TimelineView(.periodic(from: .now, by: 1.0)) { context in
             let now = context.date
-            let events = upcomingEvents(now: now).sorted { $0.secondsAway < $1.secondsAway }
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
@@ -437,7 +481,7 @@ private struct ConvergenceView: View {
                         .foregroundStyle(.white.opacity(0.55))
                         .padding(.top, 10)
 
-                    ForEach(pairAlignments(now: now)) { event in
+                    ForEach(pairAlignments(now: now).sorted { $0.secondsAway < $1.secondsAway }) { event in
                         eventRow(event)
                     }
                 }
@@ -458,15 +502,12 @@ private struct ConvergenceView: View {
         }
     }
 
-    private func upcomingEvents(now: Date) -> [ConvergenceEvent] {
-        zeroCrossings(now: now) + pairAlignments(now: now)
-    }
-
     private func zeroCrossings(now: Date) -> [ConvergenceEvent] {
         timeframes.map { tf in
             let degree = tf.degree(at: now)
-            let remainingDeg = degree.truncatingRemainder(dividingBy: 360)
-            let secondsRemaining = (360 - remainingDeg) / 360 * tf.cycleDuration
+            let positive = degree.truncatingRemainder(dividingBy: 360)
+            let normalized = positive < 0 ? positive + 360 : positive
+            let secondsRemaining = (360 - normalized) / 360 * tf.cycleDuration
             return ConvergenceEvent(
                 id: "zero-\(tf.rawValue)",
                 label: tf.label,
@@ -493,17 +534,24 @@ private struct ConvergenceView: View {
         return out
     }
 
-    /// Linearize phase rate and find next time the angular difference returns
-    /// to its starting value (mod 360). Treats both cycles as constant-rate
-    /// rotations from the current moment, which is a fine approximation for
-    /// short windows.
+    /// Time until the two dots are next at the same degree on their cycles.
+    /// Computed from the current angular difference and the difference in
+    /// angular velocities (a linear-rate approximation, fine for any window).
     private func secondsUntilAligned(a: TimeFrame, b: TimeFrame, now: Date) -> TimeInterval? {
-        let rateA = 360.0 / a.cycleDuration
+        let rateA = 360.0 / a.cycleDuration  // deg/sec
         let rateB = 360.0 / b.cycleDuration
-        let relRate = abs(rateA - rateB)
-        guard relRate > 0 else { return nil }
-        // Time for the slower clock to "lap" the faster by 360 degrees.
-        return 360 / relRate
+        let relRate = rateA - rateB
+        guard abs(relRate) > 1e-12 else { return nil }
+
+        let degA = a.degree(at: now)
+        let degB = b.degree(at: now)
+        var diff = (degA - degB).truncatingRemainder(dividingBy: 360)
+        if diff < 0 { diff += 360 }
+        if diff < 1e-6 { return 360 / abs(relRate) }  // aligned now; show next alignment
+
+        // D(t) = degA(t) - degB(t) changes at relRate. Find when D ≡ 0 (mod 360).
+        let distance: Double = relRate > 0 ? (360 - diff) : diff
+        return distance / abs(relRate)
     }
 
     private func formatDuration(_ seconds: TimeInterval) -> String {

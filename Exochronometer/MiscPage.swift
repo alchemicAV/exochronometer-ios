@@ -21,7 +21,7 @@ enum MiscMode: String, CaseIterable, Identifiable {
     var subtitle: String {
         switch self {
         case .phasePortrait: return "signal vs derivative · closed orbits = periodic"
-        case .centsWheel:    return "pitch class wheel relative to A4 = 440 Hz"
+        case .centsWheel:    return "pitch class wheel relative to A4 = 432 Hz"
         case .consonance:    return "Plomp-Levelt roughness across active pairs"
         case .colorMapping:  return "log frequency mapped to hue · amplitude to weight"
         }
@@ -103,8 +103,26 @@ private struct PhasePortraitView: View {
         SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
             let tones = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
 
-            Canvas { ctx, size in
-                drawPortrait(in: &ctx, size: size, tones: tones)
+            ZStack(alignment: .topLeading) {
+                Canvas { ctx, size in
+                    drawPortrait(in: &ctx, size: size, tones: tones)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("plot of  ( s(t),  ds/dt )")
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.5))
+                    Text("clean closed loop  →  periodic chord (small-integer ratios)")
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.4))
+                    Text("dense filled region  →  quasi-periodic (incommensurate ratios)")
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.4))
+                    Text("the timeframes are mutually incommensurate by nature")
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.3))
+                }
+                .padding(10)
             }
             .background(
                 RoundedRectangle(cornerRadius: 4)
@@ -167,7 +185,7 @@ private struct PhasePortraitView: View {
 
 private struct CentsWheelView: View {
     private let scaling: Int = 23
-    private let reference: Double = 440.0  // A4
+    private let reference: Double = 432.0  // A4 = 432 Hz
 
     var body: some View {
         SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 10.0, paused: false)) { context in

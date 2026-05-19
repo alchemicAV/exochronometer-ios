@@ -22,6 +22,7 @@
 		53C07845210F36FFC19F89B1 /* JournalNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FEBE8A8127B73E5D3A384E6 /* JournalNote.swift */; };
 		714F4FFE899086B7BEE2E16C /* ExochronometerCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 24C681C5A1DB364A26A8826C /* ExochronometerCore.framework */; };
 		764BC855DCFF3857B299122A /* NoteSnap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 005FC6D2824D4226BA8377B6 /* NoteSnap.swift */; };
+		808D2B3376E6C66365994908 /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A720287325D707634545697 /* TimelineView.swift */; };
 		8AE9391777F5F85CF125F999 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FD989EB97182B92482035C74 /* Assets.xcassets */; };
 		A631D3AED47B434EF0867634 /* TimeCircleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D79A0121D1CFD1726F35628 /* TimeCircleView.swift */; };
 		A6893528E4CB123C9DDACAF3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC998857CFFE797879BD7F26 /* ContentView.swift */; };
@@ -85,6 +86,7 @@
 		005FC6D2824D4226BA8377B6 /* NoteSnap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteSnap.swift; sourceTree = "<group>"; };
 		24C681C5A1DB364A26A8826C /* ExochronometerCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ExochronometerCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		2A27B0CE5A2E4893F5C2C13D /* Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geometry.swift; sourceTree = "<group>"; };
+		2A720287325D707634545697 /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
 		38B61305047724CE9E060E69 /* GeometryOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryOverlayView.swift; sourceTree = "<group>"; };
 		3A5C82AFDED8D7CF03E9CC81 /* JournalInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalInput.swift; sourceTree = "<group>"; };
 		474ED08E792879D3FEF75D78 /* NotePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotePanel.swift; sourceTree = "<group>"; };
@@ -180,6 +182,7 @@
 				7E30346EBCF6CDF822B58009 /* NoteIndicator.swift */,
 				474ED08E792879D3FEF75D78 /* NotePanel.swift */,
 				8D79A0121D1CFD1726F35628 /* TimeCircleView.swift */,
+				2A720287325D707634545697 /* TimelineView.swift */,
 			);
 			path = Exochronometer;
 			sourceTree = "<group>";
@@ -320,6 +323,7 @@
 				121DB5109D606AD07B4D9F5F /* NoteIndicator.swift in Sources */,
 				262478DC11BF5C86CB376BDA /* NotePanel.swift in Sources */,
 				A631D3AED47B434EF0867634 /* TimeCircleView.swift in Sources */,
+				808D2B3376E6C66365994908 /* TimelineView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

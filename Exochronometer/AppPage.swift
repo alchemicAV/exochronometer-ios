@@ -5,6 +5,8 @@ enum AppPage: String, CaseIterable, Identifiable {
     case timeline
     case geometryHarmonics
     case harmonicAnalysis
+    case spatialAnalysis
+    case misc
 
     var id: String { rawValue }
 
@@ -14,6 +16,8 @@ enum AppPage: String, CaseIterable, Identifiable {
         case .timeline:          return "Timeline"
         case .geometryHarmonics: return "Geometry Harmonics"
         case .harmonicAnalysis:  return "Harmonic Analysis"
+        case .spatialAnalysis:   return "Spatial Analysis"
+        case .misc:              return "Misc"
         }
     }
 }

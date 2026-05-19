@@ -22,6 +22,10 @@ struct ContentView: View {
                         GeometryHarmonicsPage()
                     case .harmonicAnalysis:
                         HarmonicAnalysisPage()
+                    case .spatialAnalysis:
+                        SpatialAnalysisPage()
+                    case .misc:
+                        MiscPage()
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

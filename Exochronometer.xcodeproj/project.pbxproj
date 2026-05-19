@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0EE5E5270EA832A6AB6C88B6 /* GeometryOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38B61305047724CE9E060E69 /* GeometryOverlayView.swift */; };
 		170D06A43A62E0E387FB9782 /* TimeframeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24D3AA7174A3C6B07A91483 /* TimeframeIntent.swift */; };
+		24C439D120FE9C8A946F42F0 /* RefreshIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = D35038796D3AA259A648885D /* RefreshIntent.swift */; };
 		2B82077D9C09C69D6734672D /* ExochronometerWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD3D520F0D9F61A3B0C41EF4 /* ExochronometerWidgetBundle.swift */; };
 		2FABED19F09BCBEECEF39D88 /* TimeFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CE9E3E3435F27EF050E346F /* TimeFrame.swift */; };
 		3358DE7D302C8C6E81F27F8C /* Geometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A27B0CE5A2E4893F5C2C13D /* Geometry.swift */; };
@@ -22,7 +23,6 @@
 		A904F1D09509383C3EC03944 /* ChronometerProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B09E4F65ECC76CFF0CCFBC /* ChronometerProvider.swift */; };
 		B146C88187AEB7E5835161DD /* ExochronometerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFDC26854ED88F1E6545EF85 /* ExochronometerApp.swift */; };
 		D701F6A5AF712BAB0569121C /* ExochronometerWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 81DC3ECB6E081274EFCE6722 /* ExochronometerWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		DABC36B7F7694A0867615FD4 /* LockScreenChronometerWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFD3BBDBDDE8F5248C9BFDA /* LockScreenChronometerWidget.swift */; };
 		EF2BCA1A7DBAACDE4AB44E6A /* HomeChronometerWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 632208838013383EEF952E4F /* HomeChronometerWidget.swift */; };
 		F88492ECD67B7B783C060A68 /* ExochronometerCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 24C681C5A1DB364A26A8826C /* ExochronometerCore.framework */; };
 /* End PBXBuildFile section */
@@ -77,7 +77,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		0CFD3BBDBDDE8F5248C9BFDA /* LockScreenChronometerWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenChronometerWidget.swift; sourceTree = "<group>"; };
 		24C681C5A1DB364A26A8826C /* ExochronometerCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ExochronometerCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		2A27B0CE5A2E4893F5C2C13D /* Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geometry.swift; sourceTree = "<group>"; };
 		38B61305047724CE9E060E69 /* GeometryOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryOverlayView.swift; sourceTree = "<group>"; };
@@ -93,6 +92,7 @@
 		B24D3AA7174A3C6B07A91483 /* TimeframeIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeframeIntent.swift; sourceTree = "<group>"; };
 		B4B09E4F65ECC76CFF0CCFBC /* ChronometerProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChronometerProvider.swift; sourceTree = "<group>"; };
 		CD3D520F0D9F61A3B0C41EF4 /* ExochronometerWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExochronometerWidgetBundle.swift; sourceTree = "<group>"; };
+		D35038796D3AA259A648885D /* RefreshIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshIntent.swift; sourceTree = "<group>"; };
 		D7644D6A63A350F016A4F160 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		DEE12FFD03B29E25A9425616 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		EFDC26854ED88F1E6545EF85 /* ExochronometerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExochronometerApp.swift; sourceTree = "<group>"; };
@@ -128,7 +128,7 @@
 				CD3D520F0D9F61A3B0C41EF4 /* ExochronometerWidgetBundle.swift */,
 				632208838013383EEF952E4F /* HomeChronometerWidget.swift */,
 				DEE12FFD03B29E25A9425616 /* Info.plist */,
-				0CFD3BBDBDDE8F5248C9BFDA /* LockScreenChronometerWidget.swift */,
+				D35038796D3AA259A648885D /* RefreshIntent.swift */,
 				B24D3AA7174A3C6B07A91483 /* TimeframeIntent.swift */,
 			);
 			path = ExochronometerWidget;
@@ -311,7 +311,7 @@
 				A904F1D09509383C3EC03944 /* ChronometerProvider.swift in Sources */,
 				2B82077D9C09C69D6734672D /* ExochronometerWidgetBundle.swift in Sources */,
 				EF2BCA1A7DBAACDE4AB44E6A /* HomeChronometerWidget.swift in Sources */,
-				DABC36B7F7694A0867615FD4 /* LockScreenChronometerWidget.swift in Sources */,
+				24C439D120FE9C8A946F42F0 /* RefreshIntent.swift in Sources */,
 				170D06A43A62E0E387FB9782 /* TimeframeIntent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

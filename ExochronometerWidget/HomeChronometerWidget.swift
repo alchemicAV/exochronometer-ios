@@ -11,8 +11,11 @@ struct HomeChronometerWidget: Widget {
             intent: TimeframeConfigurationIntent.self,
             provider: ChronometerProvider()
         ) { entry in
-            HomeChronometerView(entry: entry)
-                .containerBackground(.black, for: .widget)
+            Button(intent: RefreshChronometerIntent()) {
+                HomeChronometerView(entry: entry)
+            }
+            .buttonStyle(.plain)
+            .containerBackground(.black, for: .widget)
         }
         .configurationDisplayName("Exochronometer")
         .description("Geometric time circle. Pick a timeframe; add twice for two views.")

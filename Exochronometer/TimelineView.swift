@@ -24,18 +24,18 @@ struct TimelineSheet: View {
 }
 
 private struct TimelineView: View {
-    @Query(sort: \JournalNote.timestamp, order: .forward) private var notes: [JournalNote]
+    @Query(sort: \JournalNote.timestamp, order: .reverse) private var notes: [JournalNote]
 
     @State private var zoomIdx: Int = 2
     private let zoomLevels: [Double] = [0.25, 0.5, 1, 2, 4, 8]
     private var zoom: Double { zoomLevels[zoomIdx] }
 
     private let pxPerHour: Double = 12
-    private let minGap: Double = 60
-    private let flagHeights: [Double] = [36, 60, 84]
+    private let minGap: Double = 44
+    private let lineX: CGFloat = 30
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottom) {
             Color.black.ignoresSafeArea()
 
             if notes.isEmpty {
@@ -44,38 +44,35 @@ private struct TimelineView: View {
                     .tracking(3)
                     .foregroundStyle(.white.opacity(0.4))
             } else {
-                trackScroll
+                timelineScroll
             }
 
-            VStack {
-                Spacer()
-                zoomBar
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 12)
-            }
+            zoomBar
+                .padding(.horizontal, 20)
+                .padding(.bottom, 12)
         }
     }
 
-    private var trackScroll: some View {
-        let items = layoutItems()
-        let totalWidth = (items.last?.x ?? 60) + 200
+    private var timelineScroll: some View {
+        let items = displayItems()
 
-        return ScrollView(.horizontal, showsIndicators: false) {
-            ZStack(alignment: .bottomLeading) {
+        return ScrollView {
+            ZStack(alignment: .topLeading) {
                 Rectangle()
                     .fill(.white.opacity(0.5))
-                    .frame(width: totalWidth, height: 1)
-                    .padding(.bottom, 30)
+                    .frame(width: 1)
+                    .padding(.leading, lineX)
+                    .frame(maxHeight: .infinity)
 
-                ForEach(items) { item in
-                    TimelineFlag(item: item)
-                        .offset(x: item.x, y: 0)
-                        .padding(.bottom, 30)
+                VStack(spacing: 0) {
+                    ForEach(items) { item in
+                        TimelineFlagRow(item: item, lineX: lineX)
+                            .padding(.top, item.topPadding)
+                    }
                 }
             }
-            .frame(width: max(totalWidth, 320), height: 220, alignment: .bottomLeading)
+            .padding(.bottom, 60)
         }
-        .padding(.top, 20)
     }
 
     private var zoomBar: some View {
@@ -83,14 +80,7 @@ private struct TimelineView: View {
             Spacer()
             HStack(spacing: 10) {
                 Button(action: zoomOut) {
-                    Text("−")
-                        .font(.system(size: 14, weight: .medium, design: .monospaced))
-                        .foregroundStyle(.white)
-                        .frame(width: 26, height: 26)
-                        .background(
-                            RoundedRectangle(cornerRadius: 3)
-                                .stroke(.white.opacity(0.4), lineWidth: 0.5)
-                        )
+                    zoomButtonLabel("−")
                 }
                 .disabled(zoomIdx == 0)
                 .opacity(zoomIdx == 0 ? 0.25 : 1)
@@ -101,14 +91,7 @@ private struct TimelineView: View {
                     .frame(minWidth: 36)
 
                 Button(action: zoomIn) {
-                    Text("+")
-                        .font(.system(size: 14, weight: .medium, design: .monospaced))
-                        .foregroundStyle(.white)
-                        .frame(width: 26, height: 26)
-                        .background(
-                            RoundedRectangle(cornerRadius: 3)
-                                .stroke(.white.opacity(0.4), lineWidth: 0.5)
-                        )
+                    zoomButtonLabel("+")
                 }
                 .disabled(zoomIdx == zoomLevels.count - 1)
                 .opacity(zoomIdx == zoomLevels.count - 1 ? 0.25 : 1)
@@ -116,109 +99,100 @@ private struct TimelineView: View {
         }
     }
 
+    private func zoomButtonLabel(_ s: String) -> some View {
+        Text(s)
+            .font(.system(size: 14, weight: .medium, design: .monospaced))
+            .foregroundStyle(.white)
+            .frame(width: 26, height: 26)
+            .background(
+                RoundedRectangle(cornerRadius: 3)
+                    .stroke(.white.opacity(0.4), lineWidth: 0.5)
+            )
+    }
+
     private var zoomLabel: String {
-        if zoom < 1 {
-            return "\(zoom)x"
-        }
-        return "\(Int(zoom))x"
+        zoom < 1 ? "\(zoom)x" : "\(Int(zoom))x"
     }
 
     private func zoomIn() { zoomIdx = min(zoomIdx + 1, zoomLevels.count - 1) }
     private func zoomOut() { zoomIdx = max(zoomIdx - 1, 0) }
 
-    private func layoutItems() -> [LayoutItem] {
+    /// Notes are queried newest-first. topPadding is the vertical gap from
+    /// the row directly above (which is newer in time). First row gets a
+    /// small fixed top inset.
+    private func displayItems() -> [DisplayItem] {
         guard !notes.isEmpty else { return [] }
         let secondsPerHour: Double = 3600
 
-        if notes.count == 1 {
-            let only = notes[0]
-            return [LayoutItem(
-                id: only.noteID,
-                x: 60,
-                flagHeight: flagHeights[1],
-                text: only.text,
-                timestamp: only.timestamp
-            )]
-        }
-
-        var gaps: [Double] = []
-        for i in 1..<notes.count {
-            gaps.append(notes[i].timestamp.timeIntervalSince(notes[i - 1].timestamp))
-        }
-        let pixelGaps = gaps.map { g -> Double in
-            let hours = g / secondsPerHour
-            return max(minGap, hours * pxPerHour) * zoom
-        }
-
-        var items: [LayoutItem] = []
-        var heightIdxs: [Int] = []
-        var x: Double = 60
+        var out: [DisplayItem] = []
         for (i, note) in notes.enumerated() {
-            var heightIdx = i % flagHeights.count
-            if i > 0 {
-                let prevGap = pixelGaps[i - 1]
-                let prevHeightIdx = heightIdxs[i - 1]
-                if prevGap < 100 * zoom && heightIdx == prevHeightIdx {
-                    heightIdx = (heightIdx + 1) % flagHeights.count
-                }
+            let topPad: Double
+            if i == 0 {
+                topPad = 24
+            } else {
+                let newerAbove = notes[i - 1]
+                let gapSeconds = newerAbove.timestamp.timeIntervalSince(note.timestamp)
+                let gapHours = max(0, gapSeconds) / secondsPerHour
+                topPad = max(minGap, gapHours * pxPerHour) * zoom
             }
-            items.append(LayoutItem(
+            out.append(DisplayItem(
                 id: note.noteID,
-                x: x,
-                flagHeight: flagHeights[heightIdx],
+                topPadding: topPad,
                 text: note.text,
                 timestamp: note.timestamp
             ))
-            heightIdxs.append(heightIdx)
-            if i < notes.count - 1 {
-                x += pixelGaps[i]
-            }
         }
-        return items
+        return out
     }
 }
 
-private struct LayoutItem: Identifiable {
+private struct DisplayItem: Identifiable {
     let id: UUID
-    let x: Double
-    let flagHeight: Double
+    let topPadding: Double
     let text: String
     let timestamp: Date
 }
 
-private struct TimelineFlag: View {
-    let item: LayoutItem
+private struct TimelineFlagRow: View {
+    let item: DisplayItem
+    let lineX: CGFloat
 
     private static let monthNames = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            Rectangle()
-                .fill(.white.opacity(0.5))
-                .frame(width: 1, height: item.flagHeight)
-
-            Circle()
-                .fill(.white)
-                .frame(width: 7, height: 7)
-                .offset(x: -3, y: 3)
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(dateString)
-                    .font(.system(size: 8, design: .monospaced))
-                    .tracking(1.5)
-                    .foregroundStyle(.white.opacity(0.35))
-                Text(timeString)
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.55))
-                Text(item.text)
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.85))
-                    .lineLimit(1)
+        HStack(alignment: .top, spacing: 0) {
+            ZStack(alignment: .leading) {
+                Color.clear.frame(width: lineX + 24, height: 1)
+                Circle()
+                    .fill(.white)
+                    .frame(width: 7, height: 7)
+                    .offset(x: lineX - 3, y: 4)
+                Rectangle()
+                    .fill(.white.opacity(0.5))
+                    .frame(width: 16, height: 1)
+                    .offset(x: lineX + 4, y: 7)
             }
-            .fixedSize()
-            .offset(x: 6, y: -(item.flagHeight + 4))
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(dateString)
+                        .font(.system(size: 8, design: .monospaced))
+                        .tracking(1.5)
+                        .foregroundStyle(.white.opacity(0.35))
+                    Text(timeString)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.55))
+                }
+                Text(item.text)
+                    .font(.system(size: 13, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
         }
-        .frame(width: 1, height: item.flagHeight, alignment: .bottom)
+        .padding(.trailing, 20)
     }
 
     private var dateString: String {

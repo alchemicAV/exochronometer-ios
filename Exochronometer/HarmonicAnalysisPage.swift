@@ -1,14 +1,59 @@
 import SwiftUI
 import ExochronometerCore
 
-struct HarmonicAnalysisPage: View {
-    @StateObject private var audio = HarmonicAudio(octaves: 23)
-    @State private var fundamentalsOff: Bool = false
-    @State private var highOctave: Bool = false
+enum ScaleMode: String {
+    case lo
+    case hi
+    case merged
 
-    private var octaves: Int { highOctave ? 26 : 23 }
-    private var minFreqHz: Double { highOctave ? 1.0 : 0.1 }
-    private var maxFreqHz: Double { highOctave ? 200_000.0 : 50_000.0 }
+    var scales: [Int] {
+        switch self {
+        case .lo:     return [23]
+        case .hi:     return [26]
+        case .merged: return [23, 26]
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .lo:     return "2^23"
+        case .hi:     return "2^26"
+        case .merged: return "MERGED"
+        }
+    }
+
+    var isActive: Bool { self != .lo }
+    var isMerged: Bool { self == .merged }
+
+    var next: ScaleMode {
+        switch self {
+        case .lo:     return .hi
+        case .hi:     return .merged
+        case .merged: return .lo
+        }
+    }
+
+    var minFreqHz: Double {
+        switch self {
+        case .lo:     return 0.1
+        case .hi:     return 1
+        case .merged: return 0.1
+        }
+    }
+
+    var maxFreqHz: Double {
+        switch self {
+        case .lo:     return 50_000
+        case .hi:     return 200_000
+        case .merged: return 200_000
+        }
+    }
+}
+
+struct HarmonicAnalysisPage: View {
+    @StateObject private var audio = HarmonicAudio(scales: [23])
+    @State private var fundamentalsOff: Bool = false
+    @State private var scaleMode: ScaleMode = .lo
 
     var body: some View {
         VStack(spacing: 10) {
@@ -25,8 +70,9 @@ struct HarmonicAnalysisPage: View {
                 VStack(spacing: 8) {
                     VerticalSpectrum(
                         tones: displayedTones,
-                        minFreqHz: minFreqHz,
-                        maxFreqHz: maxFreqHz
+                        minFreqHz: scaleMode.minFreqHz,
+                        maxFreqHz: scaleMode.maxFreqHz,
+                        showScaleSuffix: scaleMode.isMerged
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.horizontal, 16)
@@ -56,12 +102,22 @@ struct HarmonicAnalysisPage: View {
                 .font(.system(size: 10, design: .monospaced))
                 .tracking(3)
                 .foregroundStyle(.white.opacity(0.6))
-            Text("× 2^\(octaves)  ·  minute excluded")
+            Text(headerSubtitle)
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.35))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
+    }
+
+    private var headerSubtitle: String {
+        let scaleText: String
+        switch scaleMode {
+        case .lo:     scaleText = "× 2^23"
+        case .hi:     scaleText = "× 2^26"
+        case .merged: scaleText = "× 2^23 + 2^26"
+        }
+        return "\(scaleText)  ·  minute excluded"
     }
 
     private var controls: some View {
@@ -85,11 +141,11 @@ struct HarmonicAnalysisPage: View {
             }
 
             toggleButton(
-                label: highOctave ? "2^26" : "2^23",
-                active: highOctave
+                label: scaleMode.label,
+                active: scaleMode.isActive
             ) {
-                highOctave.toggle()
-                audio.reconfigure(octaves: octaves)
+                scaleMode = scaleMode.next
+                audio.reconfigure(scales: scaleMode.scales)
             }
 
             Spacer()
@@ -114,43 +170,46 @@ struct HarmonicAnalysisPage: View {
     }
 
     private func activeTones(at date: Date) -> [SpectrumTone] {
-        let factor = pow(2.0, Double(octaves))
         var out: [SpectrumTone] = []
+        for sc in scaleMode.scales {
+            let factor = pow(2.0, Double(sc))
+            for tf in TimeFrame.allCases where tf != .minute {
+                let fundamental = (1.0 / tf.cycleDuration) * factor
+                let degree = tf.degree(at: date)
+                let nextDegree = degree + 1.0
 
-        for tf in TimeFrame.allCases where tf != .minute {
-            let fundamental = (1.0 / tf.cycleDuration) * factor
-            let degree = tf.degree(at: date)
-            let nextDegree = degree + 1.0
+                out.append(SpectrumTone(
+                    timeframe: tf,
+                    divisions: 1,
+                    octaves: sc,
+                    frequency: fundamental,
+                    amplitude: 1.0,
+                    state: .peak
+                ))
 
-            out.append(SpectrumTone(
-                timeframe: tf,
-                divisions: 1,
-                frequency: fundamental,
-                amplitude: 1.0,
-                state: .peak
-            ))
-
-            for div in 3...8 {
-                let amp = FadeMath.shapeOpacity(currentDegree: degree, divisions: div)
-                if amp > 0.01 {
-                    let nextAmp = FadeMath.shapeOpacity(currentDegree: nextDegree, divisions: div)
-                    let state: ToneState
-                    if amp > 0.95 && abs(nextAmp - amp) < 0.02 {
-                        state = .peak
-                    } else if nextAmp > amp {
-                        state = .waxing
-                    } else if nextAmp < amp {
-                        state = .waning
-                    } else {
-                        state = .peak
+                for div in 3...8 {
+                    let amp = FadeMath.shapeOpacity(currentDegree: degree, divisions: div)
+                    if amp > 0.01 {
+                        let nextAmp = FadeMath.shapeOpacity(currentDegree: nextDegree, divisions: div)
+                        let state: ToneState
+                        if amp > 0.95 && abs(nextAmp - amp) < 0.02 {
+                            state = .peak
+                        } else if nextAmp > amp {
+                            state = .waxing
+                        } else if nextAmp < amp {
+                            state = .waning
+                        } else {
+                            state = .peak
+                        }
+                        out.append(SpectrumTone(
+                            timeframe: tf,
+                            divisions: div,
+                            octaves: sc,
+                            frequency: fundamental * Double(div),
+                            amplitude: amp,
+                            state: state
+                        ))
                     }
-                    out.append(SpectrumTone(
-                        timeframe: tf,
-                        divisions: div,
-                        frequency: fundamental * Double(div),
-                        amplitude: amp,
-                        state: state
-                    ))
                 }
             }
         }
@@ -162,7 +221,8 @@ struct HarmonicAnalysisPage: View {
         var amps: [ToneID: Double] = [:]
         for tone in active {
             if fundamentalsOff && tone.divisions == 1 { continue }
-            amps[ToneID(timeframe: tone.timeframe, divisions: tone.divisions)] = tone.amplitude
+            let id = ToneID(timeframe: tone.timeframe, divisions: tone.divisions, octaves: tone.octaves)
+            amps[id] = tone.amplitude
         }
         audio.update(amplitudes: amps)
     }
@@ -183,11 +243,12 @@ enum ToneState {
 struct SpectrumTone: Identifiable {
     let timeframe: TimeFrame
     let divisions: Int
+    let octaves: Int
     let frequency: Double
     let amplitude: Double
     let state: ToneState
 
-    var id: String { "\(timeframe.rawValue)-\(divisions)" }
+    var id: String { "\(timeframe.rawValue)-\(divisions)-\(octaves)" }
     var isFundamental: Bool { divisions == 1 }
 }
 
@@ -225,6 +286,7 @@ private struct VerticalSpectrum: View {
     let tones: [SpectrumTone]
     let minFreqHz: Double
     let maxFreqHz: Double
+    let showScaleSuffix: Bool
 
     var body: some View {
         Canvas { ctx, size in
@@ -328,9 +390,10 @@ private struct VerticalSpectrum: View {
 
             let name = compactTimeframeName(tone.timeframe)
             let prefix = tone.isFundamental ? name : "\(name)×\(tone.divisions)"
+            let scaleSuffix = showScaleSuffix ? " @\(tone.octaves)" : ""
             let freqLabel = FrequencyMath.format(tone.frequency)
             let stateSuffix = tone.isFundamental ? "" : "  ·  \(tone.state.label)"
-            let label = Text("\(prefix)  ·  \(freqLabel)\(stateSuffix)")
+            let label = Text("\(prefix)\(scaleSuffix)  ·  \(freqLabel)\(stateSuffix)")
                 .font(.system(size: 8, design: .monospaced))
                 .foregroundStyle(.white.opacity(tone.isFundamental ? 0.75 : 0.55))
             ctx.draw(label, at: CGPoint(x: labelX, y: y), anchor: .leading)

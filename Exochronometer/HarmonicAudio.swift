@@ -4,6 +4,7 @@ import ExochronometerCore
 struct ToneID: Hashable {
     let timeframe: TimeFrame
     let divisions: Int
+    let octaves: Int
 }
 
 /// Sums sine oscillators on the audio thread. UI updates each tone's
@@ -25,16 +26,10 @@ final class HarmonicAudio: ObservableObject {
     private var tones: [Tone] = []
     private let lock = NSLock()
 
-    /// Build the bank from the same scaling the spectrum uses.
-    init(octaves: Int = 23) {
-        let factor = pow(2.0, Double(octaves))
-        for tf in TimeFrame.allCases where tf != .minute {
-            let fundamental = (1.0 / tf.cycleDuration) * factor
-            tones.append(Tone(id: ToneID(timeframe: tf, divisions: 1), frequency: fundamental))
-            for div in 3...8 {
-                tones.append(Tone(id: ToneID(timeframe: tf, divisions: div), frequency: fundamental * Double(div)))
-            }
-        }
+    /// Build the bank for one or more scale factors. Pass [23] for the
+    /// low scaling, [26] for the high scaling, or [23, 26] for merged.
+    init(scales: [Int] = [23]) {
+        rebuild(scales: scales)
     }
 
     func start() {
@@ -77,35 +72,41 @@ final class HarmonicAudio: ObservableObject {
         lock.unlock()
     }
 
-    /// Rebuild the oscillator bank at a new octave factor, preserving each
-    /// tone's amplitude and phase across the change so audio keeps playing
-    /// without a click.
-    func reconfigure(octaves: Int) {
+    /// Rebuild the oscillator bank for the given scale set, preserving
+    /// each tone's amplitude and phase across the change so audio keeps
+    /// playing without a click.
+    func reconfigure(scales: [Int]) {
+        rebuild(scales: scales)
+    }
+
+    private func rebuild(scales: [Int]) {
         lock.lock()
-        let factor = pow(2.0, Double(octaves))
         var prior: [ToneID: Tone] = [:]
         for t in tones { prior[t.id] = t }
 
         var rebuilt: [Tone] = []
-        for tf in TimeFrame.allCases where tf != .minute {
-            let fundamental = (1.0 / tf.cycleDuration) * factor
-            let fundId = ToneID(timeframe: tf, divisions: 1)
-            let oldFund = prior[fundId]
-            rebuilt.append(Tone(
-                id: fundId,
-                frequency: fundamental,
-                amplitude: oldFund?.amplitude ?? 0,
-                phase: oldFund?.phase ?? 0
-            ))
-            for div in 3...8 {
-                let id = ToneID(timeframe: tf, divisions: div)
-                let old = prior[id]
+        for sc in scales {
+            let factor = pow(2.0, Double(sc))
+            for tf in TimeFrame.allCases where tf != .minute {
+                let fundamental = (1.0 / tf.cycleDuration) * factor
+                let fundId = ToneID(timeframe: tf, divisions: 1, octaves: sc)
+                let oldFund = prior[fundId]
                 rebuilt.append(Tone(
-                    id: id,
-                    frequency: fundamental * Double(div),
-                    amplitude: old?.amplitude ?? 0,
-                    phase: old?.phase ?? 0
+                    id: fundId,
+                    frequency: fundamental,
+                    amplitude: oldFund?.amplitude ?? 0,
+                    phase: oldFund?.phase ?? 0
                 ))
+                for div in 3...8 {
+                    let id = ToneID(timeframe: tf, divisions: div, octaves: sc)
+                    let old = prior[id]
+                    rebuilt.append(Tone(
+                        id: id,
+                        frequency: fundamental * Double(div),
+                        amplitude: old?.amplitude ?? 0,
+                        phase: old?.phase ?? 0
+                    ))
+                }
             }
         }
         tones = rebuilt
@@ -125,6 +126,9 @@ final class HarmonicAudio: ObservableObject {
         var localTones = tones
         lock.unlock()
 
+        // Halve the gain when we have many tones (merged mode has ~70 osc).
+        let gain: Float = localTones.count > 40 ? 0.03 : 0.05
+
         for frame in 0..<frameCount {
             var sample: Float = 0
             for i in 0..<localTones.count {
@@ -137,7 +141,7 @@ final class HarmonicAudio: ObservableObject {
                     localTones[i].phase -= 2 * .pi
                 }
             }
-            let scaled = max(-1, min(1, sample * 0.05))
+            let scaled = max(-1, min(1, sample * gain))
             for buffer in ablPointer {
                 let bufferData = buffer.mData!.assumingMemoryBound(to: Float.self)
                 bufferData[frame] = scaled

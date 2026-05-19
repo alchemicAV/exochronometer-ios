@@ -1,29 +1,7 @@
 import SwiftUI
 import SwiftData
 
-struct TimelineSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            TimelineView()
-                .navigationTitle("TIMELINE")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("Close") { dismiss() }
-                            .foregroundStyle(.white)
-                    }
-                }
-                .toolbarBackground(.black, for: .navigationBar)
-                .toolbarBackground(.visible, for: .navigationBar)
-                .toolbarColorScheme(.dark, for: .navigationBar)
-        }
-        .preferredColorScheme(.dark)
-    }
-}
-
-private struct TimelineView: View {
+struct TimelinePage: View {
     @Query(sort: \JournalNote.timestamp, order: .reverse) private var notes: [JournalNote]
 
     @State private var zoomIdx: Int = 2
@@ -36,8 +14,6 @@ private struct TimelineView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Color.black.ignoresSafeArea()
-
             if notes.isEmpty {
                 Text("NO NOTES")
                     .font(.system(size: 12, design: .monospaced))
@@ -117,9 +93,6 @@ private struct TimelineView: View {
     private func zoomIn() { zoomIdx = min(zoomIdx + 1, zoomLevels.count - 1) }
     private func zoomOut() { zoomIdx = max(zoomIdx - 1, 0) }
 
-    /// Notes are queried newest-first. topPadding is the vertical gap from
-    /// the row directly above (which is newer in time). First row gets a
-    /// small fixed top inset.
     private func displayItems() -> [DisplayItem] {
         guard !notes.isEmpty else { return [] }
         let secondsPerHour: Double = 3600

@@ -12,23 +12,29 @@
 		170D06A43A62E0E387FB9782 /* TimeframeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24D3AA7174A3C6B07A91483 /* TimeframeIntent.swift */; };
 		24C439D120FE9C8A946F42F0 /* RefreshIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = D35038796D3AA259A648885D /* RefreshIntent.swift */; };
 		262478DC11BF5C86CB376BDA /* NotePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 474ED08E792879D3FEF75D78 /* NotePanel.swift */; };
+		2A9EB8D17011AA7A147A24E1 /* GeometryHarmonicsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB11C2EDAD851B06224593B /* GeometryHarmonicsPage.swift */; };
 		2B82077D9C09C69D6734672D /* ExochronometerWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD3D520F0D9F61A3B0C41EF4 /* ExochronometerWidgetBundle.swift */; };
 		2FABED19F09BCBEECEF39D88 /* TimeFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CE9E3E3435F27EF050E346F /* TimeFrame.swift */; };
 		3358DE7D302C8C6E81F27F8C /* Geometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A27B0CE5A2E4893F5C2C13D /* Geometry.swift */; };
 		347B652AAE13519A8EF39702 /* ExochronometerCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 24C681C5A1DB364A26A8826C /* ExochronometerCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		38ED69E2ABDC4C6F390801D5 /* JournalInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A5C82AFDED8D7CF03E9CC81 /* JournalInput.swift */; };
+		414C644F77E53DE041B9BE68 /* CirclesPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B127A8F8B0697B7F5744F784 /* CirclesPage.swift */; };
 		44300844A0C56FFD8D20E788 /* MoonPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 925975E213F9F2691BB94EE4 /* MoonPhase.swift */; };
 		4E71C717FBBF00ABA560F937 /* FadeMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EFDE1E923989996257B2EFC /* FadeMath.swift */; };
 		53C07845210F36FFC19F89B1 /* JournalNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FEBE8A8127B73E5D3A384E6 /* JournalNote.swift */; };
+		58C970BC10400C7BF9C1090F /* AppHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FACE187C278EEB0974813B2 /* AppHeader.swift */; };
+		6A1D8E78D4BC6E68F11F1153 /* AppPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FFD8A53138E30A8AED4ACCC /* AppPage.swift */; };
 		714F4FFE899086B7BEE2E16C /* ExochronometerCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 24C681C5A1DB364A26A8826C /* ExochronometerCore.framework */; };
 		764BC855DCFF3857B299122A /* NoteSnap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 005FC6D2824D4226BA8377B6 /* NoteSnap.swift */; };
 		808D2B3376E6C66365994908 /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A720287325D707634545697 /* TimelineView.swift */; };
 		8AE9391777F5F85CF125F999 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FD989EB97182B92482035C74 /* Assets.xcassets */; };
+		97036F615BABB194F989F604 /* FrequencyMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C15944A97104AD26BFFBFC /* FrequencyMath.swift */; };
 		A631D3AED47B434EF0867634 /* TimeCircleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D79A0121D1CFD1726F35628 /* TimeCircleView.swift */; };
 		A6893528E4CB123C9DDACAF3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC998857CFFE797879BD7F26 /* ContentView.swift */; };
 		A904F1D09509383C3EC03944 /* ChronometerProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B09E4F65ECC76CFF0CCFBC /* ChronometerProvider.swift */; };
 		B146C88187AEB7E5835161DD /* ExochronometerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFDC26854ED88F1E6545EF85 /* ExochronometerApp.swift */; };
 		D701F6A5AF712BAB0569121C /* ExochronometerWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 81DC3ECB6E081274EFCE6722 /* ExochronometerWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		E193214D444BD8FCF93D37EF /* HarmonicAnalysisPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25547A4EB0C824463271BF5A /* HarmonicAnalysisPage.swift */; };
 		EF2BCA1A7DBAACDE4AB44E6A /* HomeChronometerWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 632208838013383EEF952E4F /* HomeChronometerWidget.swift */; };
 		F88492ECD67B7B783C060A68 /* ExochronometerCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 24C681C5A1DB364A26A8826C /* ExochronometerCore.framework */; };
 /* End PBXBuildFile section */
@@ -84,7 +90,9 @@
 
 /* Begin PBXFileReference section */
 		005FC6D2824D4226BA8377B6 /* NoteSnap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteSnap.swift; sourceTree = "<group>"; };
+		1FACE187C278EEB0974813B2 /* AppHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHeader.swift; sourceTree = "<group>"; };
 		24C681C5A1DB364A26A8826C /* ExochronometerCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ExochronometerCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		25547A4EB0C824463271BF5A /* HarmonicAnalysisPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarmonicAnalysisPage.swift; sourceTree = "<group>"; };
 		2A27B0CE5A2E4893F5C2C13D /* Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geometry.swift; sourceTree = "<group>"; };
 		2A720287325D707634545697 /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
 		38B61305047724CE9E060E69 /* GeometryOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryOverlayView.swift; sourceTree = "<group>"; };
@@ -97,16 +105,20 @@
 		73FE7EB24A12A239366392B4 /* Exochronometer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Exochronometer.entitlements; sourceTree = "<group>"; };
 		7E30346EBCF6CDF822B58009 /* NoteIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteIndicator.swift; sourceTree = "<group>"; };
 		7FEBE8A8127B73E5D3A384E6 /* JournalNote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalNote.swift; sourceTree = "<group>"; };
+		7FFD8A53138E30A8AED4ACCC /* AppPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPage.swift; sourceTree = "<group>"; };
 		81DC3ECB6E081274EFCE6722 /* ExochronometerWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ExochronometerWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		85C15944A97104AD26BFFBFC /* FrequencyMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrequencyMath.swift; sourceTree = "<group>"; };
 		8D79A0121D1CFD1726F35628 /* TimeCircleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeCircleView.swift; sourceTree = "<group>"; };
 		8EBADADCD5B048AEC391902F /* Exochronometer.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Exochronometer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		925975E213F9F2691BB94EE4 /* MoonPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoonPhase.swift; sourceTree = "<group>"; };
+		B127A8F8B0697B7F5744F784 /* CirclesPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CirclesPage.swift; sourceTree = "<group>"; };
 		B24D3AA7174A3C6B07A91483 /* TimeframeIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeframeIntent.swift; sourceTree = "<group>"; };
 		B4B09E4F65ECC76CFF0CCFBC /* ChronometerProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChronometerProvider.swift; sourceTree = "<group>"; };
 		CD3D520F0D9F61A3B0C41EF4 /* ExochronometerWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExochronometerWidgetBundle.swift; sourceTree = "<group>"; };
 		D35038796D3AA259A648885D /* RefreshIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshIntent.swift; sourceTree = "<group>"; };
 		D7644D6A63A350F016A4F160 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		DEE12FFD03B29E25A9425616 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		EEB11C2EDAD851B06224593B /* GeometryHarmonicsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryHarmonicsPage.swift; sourceTree = "<group>"; };
 		EFDC26854ED88F1E6545EF85 /* ExochronometerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExochronometerApp.swift; sourceTree = "<group>"; };
 		FC998857CFFE797879BD7F26 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		FD989EB97182B92482035C74 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -150,6 +162,7 @@
 			isa = PBXGroup;
 			children = (
 				6EFDE1E923989996257B2EFC /* FadeMath.swift */,
+				85C15944A97104AD26BFFBFC /* FrequencyMath.swift */,
 				2A27B0CE5A2E4893F5C2C13D /* Geometry.swift */,
 				38B61305047724CE9E060E69 /* GeometryOverlayView.swift */,
 				925975E213F9F2691BB94EE4 /* MoonPhase.swift */,
@@ -172,10 +185,15 @@
 		9CC4FE44ABBEBBC07A137E34 /* Exochronometer */ = {
 			isa = PBXGroup;
 			children = (
+				1FACE187C278EEB0974813B2 /* AppHeader.swift */,
+				7FFD8A53138E30A8AED4ACCC /* AppPage.swift */,
 				FD989EB97182B92482035C74 /* Assets.xcassets */,
+				B127A8F8B0697B7F5744F784 /* CirclesPage.swift */,
 				FC998857CFFE797879BD7F26 /* ContentView.swift */,
 				73FE7EB24A12A239366392B4 /* Exochronometer.entitlements */,
 				EFDC26854ED88F1E6545EF85 /* ExochronometerApp.swift */,
+				EEB11C2EDAD851B06224593B /* GeometryHarmonicsPage.swift */,
+				25547A4EB0C824463271BF5A /* HarmonicAnalysisPage.swift */,
 				D7644D6A63A350F016A4F160 /* Info.plist */,
 				3A5C82AFDED8D7CF03E9CC81 /* JournalInput.swift */,
 				7FEBE8A8127B73E5D3A384E6 /* JournalNote.swift */,
@@ -316,8 +334,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				58C970BC10400C7BF9C1090F /* AppHeader.swift in Sources */,
+				6A1D8E78D4BC6E68F11F1153 /* AppPage.swift in Sources */,
+				414C644F77E53DE041B9BE68 /* CirclesPage.swift in Sources */,
 				A6893528E4CB123C9DDACAF3 /* ContentView.swift in Sources */,
 				B146C88187AEB7E5835161DD /* ExochronometerApp.swift in Sources */,
+				2A9EB8D17011AA7A147A24E1 /* GeometryHarmonicsPage.swift in Sources */,
+				E193214D444BD8FCF93D37EF /* HarmonicAnalysisPage.swift in Sources */,
 				38ED69E2ABDC4C6F390801D5 /* JournalInput.swift in Sources */,
 				53C07845210F36FFC19F89B1 /* JournalNote.swift in Sources */,
 				121DB5109D606AD07B4D9F5F /* NoteIndicator.swift in Sources */,
@@ -344,6 +367,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4E71C717FBBF00ABA560F937 /* FadeMath.swift in Sources */,
+				97036F615BABB194F989F604 /* FrequencyMath.swift in Sources */,
 				3358DE7D302C8C6E81F27F8C /* Geometry.swift in Sources */,
 				0EE5E5270EA832A6AB6C88B6 /* GeometryOverlayView.swift in Sources */,
 				44300844A0C56FFD8D20E788 /* MoonPhase.swift in Sources */,

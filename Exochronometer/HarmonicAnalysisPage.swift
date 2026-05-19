@@ -54,15 +54,12 @@ struct HarmonicAnalysisPage: View {
     @StateObject private var audio = HarmonicAudio(scales: [23])
     @State private var fundamentalsOff: Bool = false
     @State private var scaleMode: ScaleMode = .lo
-    @State private var waveform: Waveform = .sine
-    @State private var volume: Double = 0.7
+    @State private var volume: Double = 0.5
 
     var body: some View {
         VStack(spacing: 10) {
             header
-            controlsRow1
-                .padding(.horizontal, 20)
-            waveformRow
+            controlsRow
                 .padding(.horizontal, 20)
             volumeRow
                 .padding(.horizontal, 20)
@@ -83,7 +80,7 @@ struct HarmonicAnalysisPage: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.horizontal, 16)
 
-                    OscilloscopeView(tones: displayedTones, waveform: waveform)
+                    OscilloscopeView(tones: displayedTones)
                         .frame(height: 90)
                         .padding(.horizontal, 16)
                         .padding(.bottom, 16)
@@ -94,7 +91,6 @@ struct HarmonicAnalysisPage: View {
                 .onAppear {
                     pushAudio(active: active)
                     audio.volume = volume
-                    audio.waveform = waveform
                 }
             }
         }
@@ -128,7 +124,7 @@ struct HarmonicAnalysisPage: View {
         return "\(scaleText)  ·  minute excluded"
     }
 
-    private var controlsRow1: some View {
+    private var controlsRow: some View {
         HStack(spacing: 10) {
             toggleButton(
                 label: audio.isRunning ? "AUDIO ON" : "AUDIO OFF",
@@ -160,46 +156,20 @@ struct HarmonicAnalysisPage: View {
         }
     }
 
-    private var waveformRow: some View {
-        HStack(spacing: 6) {
-            ForEach(Waveform.allCases) { wave in
-                Button {
-                    waveform = wave
-                    audio.waveform = wave
-                } label: {
-                    Text(wave.label)
-                        .font(.system(size: 9, design: .monospaced))
-                        .tracking(2)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .foregroundStyle(waveform == wave ? .black : .white.opacity(0.7))
-                        .background(
-                            Capsule().fill(waveform == wave ? Color.white : .clear)
-                        )
-                        .overlay(
-                            Capsule().stroke(.white.opacity(0.3), lineWidth: 0.5)
-                        )
-                }
-            }
-            Spacer()
-        }
-    }
-
     private var volumeRow: some View {
         HStack(spacing: 10) {
             Text("VOL")
                 .font(.system(size: 9, design: .monospaced))
                 .tracking(2)
                 .foregroundStyle(.white.opacity(0.55))
-            Slider(value: $volume, in: 0...1)
-                .tint(.white.opacity(0.7))
+            MiniSlider(value: $volume, range: 0...1)
                 .onChange(of: volume) { _, new in
                     audio.volume = new
                 }
             Text("\(Int(volume * 100))%")
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.7))
-                .frame(width: 40, alignment: .trailing)
+                .frame(width: 36, alignment: .trailing)
         }
     }
 
@@ -333,6 +303,51 @@ private func decadeLabel(_ value: Double) -> String {
     return String(format: "%g", value)
 }
 
+private struct MiniSlider: View {
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+
+    private let thumbSize: CGFloat = 12
+    private let trackHeight: CGFloat = 2
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let halfThumb = thumbSize / 2
+            let usable = max(0, width - thumbSize)
+            let span = range.upperBound - range.lowerBound
+            let normalized = span == 0 ? 0 : (value - range.lowerBound) / span
+            let thumbCenter = halfThumb + CGFloat(normalized) * usable
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(.white.opacity(0.2))
+                    .frame(height: trackHeight)
+
+                Capsule()
+                    .fill(.white.opacity(0.7))
+                    .frame(width: thumbCenter, height: trackHeight)
+
+                Circle()
+                    .fill(.white)
+                    .frame(width: thumbSize, height: thumbSize)
+                    .offset(x: thumbCenter - halfThumb)
+            }
+            .frame(width: width, height: thumbSize, alignment: .leading)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { drag in
+                        let x = max(halfThumb, min(width - halfThumb, drag.location.x))
+                        let pct = usable > 0 ? (x - halfThumb) / usable : 0
+                        value = range.lowerBound + Double(pct) * span
+                    }
+            )
+        }
+        .frame(height: thumbSize)
+    }
+}
+
 private struct VerticalSpectrum: View {
     let tones: [SpectrumTone]
     let minFreqHz: Double
@@ -454,7 +469,6 @@ private struct VerticalSpectrum: View {
 
 private struct OscilloscopeView: View {
     let tones: [SpectrumTone]
-    let waveform: Waveform
     private let windowSeconds: Double = 0.030
 
     var body: some View {
@@ -491,8 +505,7 @@ private struct OscilloscopeView: View {
             let t = Double(i) / Double(samples) * windowSeconds
             var s: Double = 0
             for tone in tones {
-                let phase = 2.0 * .pi * tone.frequency * t
-                s += waveform.sample(phase: phase) * tone.amplitude
+                s += sin(2.0 * .pi * tone.frequency * t) * tone.amplitude
             }
             values[i] = s
             if abs(s) > peak { peak = abs(s) }

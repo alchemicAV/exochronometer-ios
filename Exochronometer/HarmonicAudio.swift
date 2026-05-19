@@ -7,44 +7,7 @@ struct ToneID: Hashable {
     let octaves: Int
 }
 
-enum Waveform: String, CaseIterable, Identifiable {
-    case sine, square, saw, triangle
-
-    var id: String { rawValue }
-
-    var label: String {
-        switch self {
-        case .sine:     return "SINE"
-        case .square:   return "SQUARE"
-        case .saw:      return "SAW"
-        case .triangle: return "TRI"
-        }
-    }
-
-    /// Sample value at an arbitrary phase. All waveforms are scaled to
-    /// [-1, 1] and start at 0 going positive, matching sine's phase.
-    func sample(phase: Double) -> Double {
-        let twoPi = 2 * Double.pi
-        let raw = phase.truncatingRemainder(dividingBy: twoPi)
-        let p = raw < 0 ? raw + twoPi : raw
-
-        switch self {
-        case .sine:
-            return sin(p)
-        case .square:
-            return sin(p) >= 0 ? 1 : -1
-        case .saw:
-            return p < .pi ? p / .pi : p / .pi - 2
-        case .triangle:
-            let n = p / twoPi
-            if n < 0.25 { return 4 * n }
-            if n < 0.75 { return 2 - 4 * n }
-            return 4 * n - 4
-        }
-    }
-}
-
-/// Sums oscillators on the audio thread. UI updates each tone's
+/// Sums sine oscillators on the audio thread. UI updates each tone's
 /// amplitude per frame; the engine fills buffers continuously.
 final class HarmonicAudio: ObservableObject {
     @Published private(set) var isRunning: Bool = false
@@ -61,18 +24,12 @@ final class HarmonicAudio: ObservableObject {
     }
 
     private var tones: [Tone] = []
-    private var _volume: Double = 0.7
-    private var _waveform: Waveform = .sine
+    private var _volume: Double = 0.5
     private let lock = NSLock()
 
     var volume: Double {
         get { lock.lock(); defer { lock.unlock() }; return _volume }
         set { lock.lock(); _volume = newValue; lock.unlock() }
-    }
-
-    var waveform: Waveform {
-        get { lock.lock(); defer { lock.unlock() }; return _waveform }
-        set { lock.lock(); _waveform = newValue; lock.unlock() }
     }
 
     init(scales: [Int] = [23]) {
@@ -172,10 +129,8 @@ final class HarmonicAudio: ObservableObject {
         lock.lock()
         var localTones = tones
         let localVolume = Float(_volume)
-        let localWaveform = _waveform
         lock.unlock()
 
-        // Halve the base gain when we have many tones (merged mode ~70 osc).
         let baseGain: Float = localTones.count > 40 ? 0.03 : 0.05
         let effectiveGain = baseGain * localVolume
 
@@ -184,7 +139,7 @@ final class HarmonicAudio: ObservableObject {
             for i in 0..<localTones.count {
                 let amp = localTones[i].amplitude
                 if amp > 0.001 {
-                    sample += Float(localWaveform.sample(phase: localTones[i].phase) * amp)
+                    sample += Float(sin(localTones[i].phase) * amp)
                 }
                 localTones[i].phase += 2 * .pi * localTones[i].frequency / sampleRate
                 if localTones[i].phase > 2 * .pi {

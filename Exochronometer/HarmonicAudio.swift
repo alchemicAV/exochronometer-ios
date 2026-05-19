@@ -26,7 +26,7 @@ final class HarmonicAudio: ObservableObject {
     private let lock = NSLock()
 
     /// Build the bank from the same scaling the spectrum uses.
-    init(octaves: Int = 26) {
+    init(octaves: Int = 23) {
         let factor = pow(2.0, Double(octaves))
         for tf in TimeFrame.allCases where tf != .minute {
             let fundamental = (1.0 / tf.cycleDuration) * factor

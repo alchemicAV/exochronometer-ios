@@ -2,11 +2,12 @@ import SwiftUI
 import ExochronometerCore
 
 struct HarmonicAnalysisPage: View {
-    private let octaves: Int = 26
-    private let minFreqHz: Double = 1
+    private static let octaves: Int = 23
+    private let octaves: Int = HarmonicAnalysisPage.octaves
+    private let minFreqHz: Double = 0.1
     private let maxFreqHz: Double = 50_000
 
-    @StateObject private var audio = HarmonicAudio(octaves: 26)
+    @StateObject private var audio = HarmonicAudio(octaves: HarmonicAnalysisPage.octaves)
     @State private var fundamentalsOff: Bool = false
 
     var body: some View {
@@ -231,7 +232,7 @@ private struct VerticalSpectrum: View {
     }
 
     private func drawGrid(in ctx: inout GraphicsContext, size: CGSize, logMin: Double, range: Double, axisWidth: CGFloat, baselineX: CGFloat) {
-        let decades: [Double] = [1, 10, 100, 1_000, 10_000]
+        let decades: [Double] = [0.1, 1, 10, 100, 1_000, 10_000]
         for d in decades {
             let y = mapY(d, logMin: logMin, range: range, height: size.height)
             var p = Path()
@@ -247,6 +248,7 @@ private struct VerticalSpectrum: View {
 
     private func drawAxisLabels(in ctx: inout GraphicsContext, size: CGSize, logMin: Double, range: Double) {
         let entries: [(Double, String)] = [
+            (0.1, "0.1"),
             (1, "1 Hz"),
             (10, "10"),
             (100, "100"),

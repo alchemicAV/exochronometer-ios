@@ -6,26 +6,47 @@ struct HarmonicAnalysisPage: View {
     private let minFreqHz: Double = 1
     private let maxFreqHz: Double = 50_000
 
+    @StateObject private var audio = HarmonicAudio(octaves: 26)
+    @State private var fundamentalsOff: Bool = false
+
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             header
+            controls
+                .padding(.horizontal, 20)
 
             SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
-                FourierSpectrumView(
-                    date: context.date,
-                    octaves: octaves,
-                    minFreqHz: minFreqHz,
-                    maxFreqHz: maxFreqHz
-                )
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.horizontal, 16)
+                let active = activeTones(at: context.date)
+                let displayedTones = fundamentalsOff
+                    ? active.filter { $0.divisions != 1 }
+                    : active
 
-            legend
-                .padding(.horizontal, 20)
-                .padding(.bottom, 24)
+                VStack(spacing: 8) {
+                    VerticalSpectrum(
+                        tones: displayedTones,
+                        minFreqHz: minFreqHz,
+                        maxFreqHz: maxFreqHz
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.horizontal, 16)
+
+                    OscilloscopeView(tones: displayedTones)
+                        .frame(height: 90)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
+                }
+                .onChange(of: context.date) { _, _ in
+                    pushAudio(active: active)
+                }
+                .onAppear {
+                    pushAudio(active: active)
+                }
+            }
         }
         .padding(.top, 8)
+        .onDisappear {
+            audio.stop()
+        }
     }
 
     private var header: some View {
@@ -42,76 +63,186 @@ struct HarmonicAnalysisPage: View {
         .padding(.horizontal, 20)
     }
 
-    private var legend: some View {
-        let factor = pow(2.0, Double(octaves))
-        let fundamentals = TimeFrame.allCases
-            .filter { $0 != .minute }
-            .map { tf -> (String, Double) in
-                (tf.label, (1.0 / tf.cycleDuration) * factor)
-            }
-
-        return VStack(alignment: .leading, spacing: 4) {
-            ForEach(fundamentals, id: \.0) { name, hz in
-                HStack {
-                    Text(name)
-                        .font(.system(size: 9, design: .monospaced))
-                        .tracking(2)
-                        .foregroundStyle(.white.opacity(0.55))
-                        .frame(width: 110, alignment: .leading)
-                    Text(FrequencyMath.format(hz))
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.8))
-                    Spacer()
+    private var controls: some View {
+        HStack(spacing: 10) {
+            toggleButton(
+                label: audio.isRunning ? "AUDIO ON" : "AUDIO OFF",
+                active: audio.isRunning
+            ) {
+                if audio.isRunning {
+                    audio.stop()
+                } else {
+                    audio.start()
                 }
             }
+
+            toggleButton(
+                label: fundamentalsOff ? "FUND OFF" : "FUND ON",
+                active: !fundamentalsOff
+            ) {
+                fundamentalsOff.toggle()
+            }
+
+            Spacer()
+        }
+    }
+
+    private func toggleButton(label: String, active: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 9, design: .monospaced))
+                .tracking(2)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .foregroundStyle(active ? .black : .white.opacity(0.7))
+                .background(
+                    Capsule().fill(active ? Color.white : .clear)
+                )
+                .overlay(
+                    Capsule().stroke(.white.opacity(0.3), lineWidth: 0.5)
+                )
+        }
+    }
+
+    private func activeTones(at date: Date) -> [SpectrumTone] {
+        let factor = pow(2.0, Double(octaves))
+        var out: [SpectrumTone] = []
+
+        for tf in TimeFrame.allCases where tf != .minute {
+            let fundamental = (1.0 / tf.cycleDuration) * factor
+            let degree = tf.degree(at: date)
+            let nextDegree = degree + 1.0
+
+            out.append(SpectrumTone(
+                timeframe: tf,
+                divisions: 1,
+                frequency: fundamental,
+                amplitude: 1.0,
+                state: .peak
+            ))
+
+            for div in 3...8 {
+                let amp = FadeMath.shapeOpacity(currentDegree: degree, divisions: div)
+                if amp > 0.01 {
+                    let nextAmp = FadeMath.shapeOpacity(currentDegree: nextDegree, divisions: div)
+                    let state: ToneState
+                    if amp > 0.95 && abs(nextAmp - amp) < 0.02 {
+                        state = .peak
+                    } else if nextAmp > amp {
+                        state = .waxing
+                    } else if nextAmp < amp {
+                        state = .waning
+                    } else {
+                        state = .peak
+                    }
+                    out.append(SpectrumTone(
+                        timeframe: tf,
+                        divisions: div,
+                        frequency: fundamental * Double(div),
+                        amplitude: amp,
+                        state: state
+                    ))
+                }
+            }
+        }
+        return out
+    }
+
+    private func pushAudio(active: [SpectrumTone]) {
+        guard audio.isRunning else { return }
+        var amps: [ToneID: Double] = [:]
+        for tone in active {
+            if fundamentalsOff && tone.divisions == 1 { continue }
+            amps[ToneID(timeframe: tone.timeframe, divisions: tone.divisions)] = tone.amplitude
+        }
+        audio.update(amplitudes: amps)
+    }
+}
+
+enum ToneState {
+    case waxing, peak, waning
+
+    var label: String {
+        switch self {
+        case .waxing: return "WAXING"
+        case .peak:   return "PEAK"
+        case .waning: return "WANING"
         }
     }
 }
 
-private struct FourierSpectrumView: View {
-    let date: Date
-    let octaves: Int
+struct SpectrumTone: Identifiable {
+    let timeframe: TimeFrame
+    let divisions: Int
+    let frequency: Double
+    let amplitude: Double
+    let state: ToneState
+
+    var id: String { "\(timeframe.rawValue)-\(divisions)" }
+    var isFundamental: Bool { divisions == 1 }
+}
+
+private struct VerticalSpectrum: View {
+    let tones: [SpectrumTone]
     let minFreqHz: Double
     let maxFreqHz: Double
 
     var body: some View {
         Canvas { ctx, size in
-            drawSpectrum(in: &ctx, size: size)
+            drawAll(in: &ctx, size: size)
         }
     }
 
-    private func drawSpectrum(in ctx: inout GraphicsContext, size: CGSize) {
+    private func drawAll(in ctx: inout GraphicsContext, size: CGSize) {
         let logMin = log10(minFreqHz)
         let logMax = log10(maxFreqHz)
         let range = logMax - logMin
         guard range > 0 else { return }
 
-        drawAudibleBand(in: &ctx, size: size, logMin: logMin, range: range)
-        drawGrid(in: &ctx, size: size, logMin: logMin, range: range)
+        let axisWidth: CGFloat = 38
+        let baselineX: CGFloat = axisWidth + 6
+        let labelX: CGFloat = axisWidth + 6 + 140 + 8
+        let maxBarWidth: CGFloat = 140
+
+        drawAudibleBand(in: &ctx, size: size, logMin: logMin, range: range, baselineX: baselineX)
+        drawGrid(in: &ctx, size: size, logMin: logMin, range: range, axisWidth: axisWidth, baselineX: baselineX)
         drawAxisLabels(in: &ctx, size: size, logMin: logMin, range: range)
-        drawTones(in: &ctx, size: size, logMin: logMin, range: range)
+        drawTones(
+            in: &ctx,
+            size: size,
+            logMin: logMin,
+            range: range,
+            baselineX: baselineX,
+            maxBarWidth: maxBarWidth,
+            labelX: labelX
+        )
     }
 
-    private func drawAudibleBand(in ctx: inout GraphicsContext, size: CGSize, logMin: Double, range: Double) {
-        let lo = mapX(20, logMin: logMin, range: range, width: size.width)
-        let hi = mapX(20_000, logMin: logMin, range: range, width: size.width)
-        let band = CGRect(x: lo, y: 0, width: hi - lo, height: size.height)
+    private func mapY(_ freq: Double, logMin: Double, range: Double, height: CGFloat) -> CGFloat {
+        let frac = (log10(freq) - logMin) / range
+        return height * (1.0 - CGFloat(frac))
+    }
+
+    private func drawAudibleBand(in ctx: inout GraphicsContext, size: CGSize, logMin: Double, range: Double, baselineX: CGFloat) {
+        let yLo = mapY(20, logMin: logMin, range: range, height: size.height)
+        let yHi = mapY(20_000, logMin: logMin, range: range, height: size.height)
+        let band = CGRect(x: baselineX, y: yHi, width: size.width - baselineX, height: yLo - yHi)
         ctx.fill(Path(band), with: .color(.white.opacity(0.04)))
     }
 
-    private func drawGrid(in ctx: inout GraphicsContext, size: CGSize, logMin: Double, range: Double) {
+    private func drawGrid(in ctx: inout GraphicsContext, size: CGSize, logMin: Double, range: Double, axisWidth: CGFloat, baselineX: CGFloat) {
         let decades: [Double] = [1, 10, 100, 1_000, 10_000]
         for d in decades {
-            let x = mapX(d, logMin: logMin, range: range, width: size.width)
+            let y = mapY(d, logMin: logMin, range: range, height: size.height)
             var p = Path()
-            p.move(to: CGPoint(x: x, y: 0))
-            p.addLine(to: CGPoint(x: x, y: size.height))
-            ctx.stroke(p, with: .color(.white.opacity(0.08)), lineWidth: 0.5)
+            p.move(to: CGPoint(x: baselineX, y: y))
+            p.addLine(to: CGPoint(x: size.width, y: y))
+            ctx.stroke(p, with: .color(.white.opacity(0.06)), lineWidth: 0.5)
         }
-        var baseline = Path()
-        baseline.move(to: CGPoint(x: 0, y: size.height - 0.5))
-        baseline.addLine(to: CGPoint(x: size.width, y: size.height - 0.5))
-        ctx.stroke(baseline, with: .color(.white.opacity(0.25)), lineWidth: 0.5)
+        var spine = Path()
+        spine.move(to: CGPoint(x: baselineX, y: 0))
+        spine.addLine(to: CGPoint(x: baselineX, y: size.height))
+        ctx.stroke(spine, with: .color(.white.opacity(0.3)), lineWidth: 0.5)
     }
 
     private func drawAxisLabels(in ctx: inout GraphicsContext, size: CGSize, logMin: Double, range: Double) {
@@ -123,85 +254,112 @@ private struct FourierSpectrumView: View {
             (10_000, "10k"),
         ]
         for (hz, label) in entries {
-            let x = mapX(hz, logMin: logMin, range: range, width: size.width)
+            let y = mapY(hz, logMin: logMin, range: range, height: size.height)
             let text = Text(label)
                 .font(.system(size: 8, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.4))
-            ctx.draw(text, at: CGPoint(x: x, y: size.height - 8), anchor: .center)
+                .foregroundStyle(.white.opacity(0.45))
+            ctx.draw(text, at: CGPoint(x: 18, y: y), anchor: .center)
         }
     }
 
-    private func drawTones(in ctx: inout GraphicsContext, size: CGSize, logMin: Double, range: Double) {
-        let factor = pow(2.0, Double(octaves))
-        let plotHeight = size.height - 16
-
-        for tf in TimeFrame.allCases where tf != .minute {
-            let fundamental = (1.0 / tf.cycleDuration) * factor
-            let degree = tf.degree(at: date)
-
-            drawPeak(
-                in: &ctx,
-                size: size,
-                freq: fundamental,
-                amplitude: 1.0,
-                color: .white,
-                lineWidth: 1.5,
-                logMin: logMin,
-                range: range,
-                plotHeight: plotHeight
-            )
-
-            for div in 3...8 {
-                let amp = FadeMath.shapeOpacity(currentDegree: degree, divisions: div)
-                if amp > 0.01 {
-                    drawPeak(
-                        in: &ctx,
-                        size: size,
-                        freq: fundamental * Double(div),
-                        amplitude: amp,
-                        color: .white.opacity(0.85),
-                        lineWidth: 0.8,
-                        logMin: logMin,
-                        range: range,
-                        plotHeight: plotHeight
-                    )
-                }
-            }
-        }
-    }
-
-    private func drawPeak(
+    private func drawTones(
         in ctx: inout GraphicsContext,
         size: CGSize,
-        freq: Double,
-        amplitude: Double,
-        color: Color,
-        lineWidth: Double,
         logMin: Double,
         range: Double,
-        plotHeight: Double
+        baselineX: CGFloat,
+        maxBarWidth: CGFloat,
+        labelX: CGFloat
     ) {
-        guard freq >= minFreqHz, freq <= maxFreqHz else { return }
-        let x = mapX(freq, logMin: logMin, range: range, width: size.width)
-        let yBase = size.height - 8
-        let yTop = yBase - plotHeight * amplitude
+        for tone in tones {
+            guard tone.frequency >= minFreqHz, tone.frequency <= maxFreqHz else { continue }
+            let y = mapY(tone.frequency, logMin: logMin, range: range, height: size.height)
+            let length = maxBarWidth * CGFloat(tone.amplitude)
 
-        var stem = Path()
-        stem.move(to: CGPoint(x: x, y: yBase))
-        stem.addLine(to: CGPoint(x: x, y: yTop))
-        ctx.stroke(stem, with: .color(color), lineWidth: lineWidth)
+            var bar = Path()
+            bar.move(to: CGPoint(x: baselineX, y: y))
+            bar.addLine(to: CGPoint(x: baselineX + length, y: y))
 
-        let dotR = 2.0 + amplitude * 2.0
-        let dotRect = CGRect(
-            x: x - dotR,
-            y: yTop - dotR,
-            width: dotR * 2,
-            height: dotR * 2
+            let color: Color = tone.isFundamental ? .white : .white.opacity(0.85)
+            let lineWidth: CGFloat = tone.isFundamental ? 1.5 : 0.8
+            ctx.stroke(bar, with: .color(color), lineWidth: lineWidth)
+
+            let dotR = 1.5 + tone.amplitude * 2.0
+            let dot = CGRect(
+                x: baselineX + length - dotR,
+                y: y - dotR,
+                width: dotR * 2,
+                height: dotR * 2
+            )
+            ctx.fill(Path(ellipseIn: dot), with: .color(color))
+
+            let freqLabel = FrequencyMath.format(tone.frequency)
+            let stateSuffix = tone.isFundamental ? "" : "  ·  \(tone.state.label)"
+            let label = Text("\(freqLabel)\(stateSuffix)")
+                .font(.system(size: 8, design: .monospaced))
+                .foregroundStyle(.white.opacity(tone.isFundamental ? 0.75 : 0.55))
+            ctx.draw(label, at: CGPoint(x: labelX, y: y), anchor: .leading)
+        }
+    }
+}
+
+private struct OscilloscopeView: View {
+    let tones: [SpectrumTone]
+    private let windowSeconds: Double = 0.030
+
+    var body: some View {
+        Canvas { ctx, size in
+            drawScope(in: &ctx, size: size)
+        }
+        .overlay(alignment: .topLeading) {
+            Text("COMPOSITE WAVEFORM")
+                .font(.system(size: 8, design: .monospaced))
+                .tracking(2)
+                .foregroundStyle(.white.opacity(0.35))
+                .padding(.leading, 4)
+                .padding(.top, 4)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(.white.opacity(0.15), lineWidth: 0.5)
         )
-        ctx.fill(Path(ellipseIn: dotRect), with: .color(color))
     }
 
-    private func mapX(_ freq: Double, logMin: Double, range: Double, width: Double) -> Double {
-        ((log10(freq) - logMin) / range) * width
+    private func drawScope(in ctx: inout GraphicsContext, size: CGSize) {
+        var center = Path()
+        center.move(to: CGPoint(x: 0, y: size.height / 2))
+        center.addLine(to: CGPoint(x: size.width, y: size.height / 2))
+        ctx.stroke(center, with: .color(.white.opacity(0.1)), lineWidth: 0.5)
+
+        guard !tones.isEmpty else { return }
+
+        let samples = Int(size.width)
+        var values: [Double] = Array(repeating: 0, count: samples)
+        var peak: Double = 0
+
+        for i in 0..<samples {
+            let t = Double(i) / Double(samples) * windowSeconds
+            var s: Double = 0
+            for tone in tones {
+                s += sin(2.0 * .pi * tone.frequency * t) * tone.amplitude
+            }
+            values[i] = s
+            if abs(s) > peak { peak = abs(s) }
+        }
+
+        guard peak > 0 else { return }
+        let scale = (size.height / 2 - 4) / peak
+
+        var wave = Path()
+        for i in 0..<samples {
+            let x = CGFloat(i)
+            let y = size.height / 2 - CGFloat(values[i] * scale)
+            if i == 0 {
+                wave.move(to: CGPoint(x: x, y: y))
+            } else {
+                wave.addLine(to: CGPoint(x: x, y: y))
+            }
+        }
+        ctx.stroke(wave, with: .color(.white.opacity(0.85)), lineWidth: 1)
     }
 }

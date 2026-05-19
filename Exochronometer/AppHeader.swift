@@ -42,7 +42,7 @@ struct AppHeader: View {
                             .frame(width: 36, height: 36)
                             .contentShape(Rectangle())
                     }
-                    .offset(x: -25, y: -15)
+                    .offset(x: 25, y: -10)
                 }
         }
         .padding(.top, 16)

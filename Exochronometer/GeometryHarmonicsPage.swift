@@ -78,9 +78,9 @@ private struct HarmonicRow: View {
                 Text("period: \(periodString)")
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.7))
-                Text("freq: \(frequencyString)")
+                Text("interval: \(intervalString)")
                     .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(.white.opacity(0.55))
             }
 
             Spacer(minLength: 0)
@@ -91,16 +91,25 @@ private struct HarmonicRow: View {
         timeframe.cycleDuration / Double(shape.divisions)
     }
 
-    private var harmonicFrequencyHz: Double {
-        Double(shape.divisions) / timeframe.cycleDuration
-    }
-
     private var periodString: String {
         FrequencyMath.formatDuration(harmonicPeriodSeconds)
     }
 
-    private var frequencyString: String {
-        FrequencyMath.format(harmonicFrequencyHz)
+    private var intervalString: String {
+        switch shape.divisions {
+        case 2: return "Octave (2:1)"
+        case 3: return "Perfect Fifth (3:2)"
+        case 4: return "Octave (4:1)"
+        case 5: return "Major Third (5:4)"
+        case 6: return "Perfect Fifth (6:4)"
+        case 7: return "Harmonic Seventh (7:4)"
+        case 8: return "Octave (8:1)"
+        case 9: return "Major Second (9:8)"
+        case 10: return "Major Third (10:8)"
+        case 11: return "Undecimal Tritone (11:8)"
+        case 12: return "Perfect Fifth (12:8)"
+        default: return "\(shape.divisions):1"
+        }
     }
 
     private var shapeName: String {

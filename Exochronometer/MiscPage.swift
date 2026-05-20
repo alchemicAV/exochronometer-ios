@@ -1,4 +1,5 @@
 import SwiftUI
+import SceneKit
 import ExochronometerCore
 
 enum MiscMode: String, CaseIterable, Identifiable {
@@ -6,24 +7,30 @@ enum MiscMode: String, CaseIterable, Identifiable {
     case centsWheel
     case consonance
     case colorMapping
+    case mandala
+    case harmonicEntropy
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
-        case .phasePortrait: return "PHASE"
-        case .centsWheel:    return "CENTS"
-        case .consonance:    return "ROUGHNESS"
-        case .colorMapping:  return "COLOR"
+        case .phasePortrait:   return "PHASE"
+        case .centsWheel:      return "CENTS"
+        case .consonance:      return "ROUGHNESS"
+        case .colorMapping:    return "COLOR"
+        case .mandala:         return "MANDALA"
+        case .harmonicEntropy: return "ENTROPY"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .phasePortrait: return "signal vs derivative · closed orbits = periodic"
-        case .centsWheel:    return "pitch class wheel relative to A4 = 432 Hz"
-        case .consonance:    return "Plomp-Levelt roughness across active pairs"
-        case .colorMapping:  return "log frequency mapped to hue · amplitude to weight"
+        case .phasePortrait:   return "signal vs derivative · closed orbits = periodic"
+        case .centsWheel:      return "pitch class wheel relative to A4 = 432 Hz"
+        case .consonance:      return "Plomp-Levelt roughness across active pairs"
+        case .colorMapping:    return "log frequency mapped to hue · amplitude to weight"
+        case .mandala:         return "3D mandala · default polygons stacked in space"
+        case .harmonicEntropy: return "Shannon entropy of just-intonation ratio guesses"
         }
     }
 }
@@ -53,10 +60,12 @@ struct MiscPage: View {
 
             Group {
                 switch mode {
-                case .phasePortrait: PhasePortraitView()
-                case .centsWheel:    CentsWheelView()
-                case .consonance:    ConsonanceView()
-                case .colorMapping:  ColorMappingView()
+                case .phasePortrait:   PhasePortraitView()
+                case .centsWheel:      CentsWheelView()
+                case .consonance:      ConsonanceView()
+                case .colorMapping:    ColorMappingView()
+                case .mandala:         MandalaView()
+                case .harmonicEntropy: HarmonicEntropyView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -430,5 +439,204 @@ private struct ColorMappingView: View {
 
     private func stats(_ tones: [HarmonicTone]) -> String {
         "\(tones.count) tones blended"
+    }
+}
+
+// MARK: - 3D Mandala
+
+private struct MandalaView: View {
+    @State private var scene: SCNScene = MandalaView.buildScene()
+
+    var body: some View {
+        SceneView(
+            scene: scene,
+            options: [.allowsCameraControl]
+        )
+        .background(Color.black)
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(.white.opacity(0.15), lineWidth: 0.5)
+        )
+    }
+
+    private static func buildScene() -> SCNScene {
+        let scene = SCNScene()
+        scene.background.contents = UIColor.black
+
+        let cameraNode = SCNNode()
+        cameraNode.camera = SCNCamera()
+        cameraNode.camera?.zNear = 0.1
+        cameraNode.camera?.zFar = 100
+        cameraNode.position = SCNVector3(0, 0, 14)
+        scene.rootNode.addChildNode(cameraNode)
+
+        let mandala = SCNNode()
+        let shapes = GeometryMath.defaultShapes
+        let center = Double(shapes.count - 1) / 2
+        for (idx, shape) in shapes.enumerated() {
+            let z = Float((Double(idx) - center) * 0.5)
+            mandala.addChildNode(makePolygon(shape: shape, z: z))
+        }
+
+        let rotation = SCNAction.repeatForever(
+            SCNAction.rotateBy(x: 0.4, y: 1.0, z: 0.1, duration: 30)
+        )
+        mandala.runAction(rotation)
+        scene.rootNode.addChildNode(mandala)
+
+        return scene
+    }
+
+    private static func makePolygon(shape: GeometryMath.Shape, z: Float) -> SCNNode {
+        let radius: Float = 2.5
+        var vertices: [SCNVector3] = []
+        vertices.reserveCapacity(shape.divisions)
+        for i in 0..<shape.divisions {
+            let angle = Float(i) * .pi * 2 / Float(shape.divisions) - .pi / 2
+            vertices.append(SCNVector3(
+                radius * cos(angle),
+                radius * sin(angle),
+                z
+            ))
+        }
+
+        var indices: [UInt16] = []
+        indices.reserveCapacity(shape.path.count * 2)
+        for edge in shape.path {
+            indices.append(UInt16(edge.from))
+            indices.append(UInt16(edge.to))
+        }
+
+        let source = SCNGeometrySource(vertices: vertices)
+        let element = SCNGeometryElement(
+            indices: indices,
+            primitiveType: .line
+        )
+        let geometry = SCNGeometry(sources: [source], elements: [element])
+
+        let material = SCNMaterial()
+        material.diffuse.contents = UIColor.white.withAlphaComponent(0.7)
+        material.lightingModel = .constant
+        material.isDoubleSided = true
+        geometry.materials = [material]
+
+        return SCNNode(geometry: geometry)
+    }
+}
+
+// MARK: - Harmonic Entropy
+
+private struct HarmonicEntropyView: View {
+    private let scaling: Int = 23
+
+    private static let jiRatios: [Double] = [
+        1.0,
+        16.0/15,
+        9.0/8,
+        6.0/5,
+        5.0/4,
+        4.0/3,
+        45.0/32,
+        3.0/2,
+        8.0/5,
+        5.0/3,
+        7.0/4,
+        15.0/8,
+        2.0,
+    ]
+
+    var body: some View {
+        SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 5.0, paused: false)) { context in
+            let tones = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
+            let entropy = totalEntropy(tones)
+            let maxEntropy = log(Double(Self.jiRatios.count))
+            let normalized = maxEntropy > 0 ? min(1.0, entropy / (maxEntropy * Double(max(1, tones.count * (tones.count - 1) / 2)))) : 0
+
+            VStack(spacing: 20) {
+                Text(String(format: "%.3f", entropy))
+                    .font(.system(size: 36, weight: .ultraLight, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.9))
+
+                meter(value: normalized)
+                    .frame(height: 12)
+
+                HStack {
+                    Text("CLEAR")
+                        .font(.system(size: 8, design: .monospaced))
+                        .tracking(2)
+                        .foregroundStyle(.white.opacity(0.4))
+                    Spacer()
+                    Text("AMBIGUOUS")
+                        .font(.system(size: 8, design: .monospaced))
+                        .tracking(2)
+                        .foregroundStyle(.white.opacity(0.4))
+                }
+
+                Text("\(tones.count) active tones · summed Shannon entropy of JI-ratio guesses")
+                    .font(.system(size: 9, design: .monospaced))
+                    .tracking(1.5)
+                    .foregroundStyle(.white.opacity(0.4))
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 12)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .padding(.horizontal, 24)
+        }
+    }
+
+    private func meter(value: Double) -> some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(.white.opacity(0.15))
+                Capsule()
+                    .fill(.white.opacity(0.85))
+                    .frame(width: proxy.size.width * CGFloat(max(0, min(1, value))))
+            }
+        }
+    }
+
+    /// Sum of pair entropies. Each pair's entropy is the Shannon entropy
+    /// over a Gaussian-weighted distribution of "this cents value matches
+    /// JI ratio X" probabilities, scaled by the product of amplitudes.
+    private func totalEntropy(_ tones: [HarmonicTone]) -> Double {
+        guard tones.count >= 2 else { return 0 }
+        var total: Double = 0
+        for i in 0..<tones.count {
+            for j in (i + 1)..<tones.count {
+                let a = tones[i]
+                let b = tones[j]
+                guard a.frequency > 0, b.frequency > 0 else { continue }
+                let cents = abs(1200 * log2(b.frequency / a.frequency))
+                let h = pairEntropy(cents: cents)
+                total += h * a.amplitude * b.amplitude
+            }
+        }
+        return total
+    }
+
+    private func pairEntropy(cents: Double, sigma: Double = 30) -> Double {
+        let octaveCents = (cents.truncatingRemainder(dividingBy: 1200) + 1200)
+            .truncatingRemainder(dividingBy: 1200)
+        var probs: [Double] = []
+        probs.reserveCapacity(Self.jiRatios.count)
+        for ratio in Self.jiRatios {
+            let ratioCents = 1200 * log2(ratio)
+            let dist = min(
+                abs(octaveCents - ratioCents),
+                abs(octaveCents - ratioCents - 1200),
+                abs(octaveCents - ratioCents + 1200)
+            )
+            probs.append(exp(-dist * dist / (2 * sigma * sigma)))
+        }
+        let sum = probs.reduce(0, +)
+        guard sum > 0 else { return log(Double(probs.count)) }
+        var h: Double = 0
+        for p in probs where p > 1e-10 {
+            let pn = p / sum
+            h -= pn * log(pn)
+        }
+        return h
     }
 }

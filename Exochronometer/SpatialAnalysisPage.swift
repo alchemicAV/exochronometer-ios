@@ -21,7 +21,7 @@ enum SpatialMode: String, CaseIterable, Identifiable {
     var subtitle: String {
         switch self {
         case .lissajous:   return "within-timeframe pairs · sectioned fast → slow"
-        case .spectrogram: return "1-year log-time history · refreshes every 5s"
+        case .spectrogram: return "linear · quarter-moon window · refreshes every 10s"
         case .chladni:     return "2D membrane modes summed by amplitude"
         case .convergence: return "time until next angular alignment (live)"
         }
@@ -261,7 +261,7 @@ private struct LissajousCell: View {
     }
 }
 
-// MARK: - Spectrogram (log time, 1 year)
+// MARK: - Spectrogram (linear, quarter-moon window)
 
 private final class SpectrogramBuffer: ObservableObject {
     @Published private(set) var frames: [Frame] = []
@@ -272,22 +272,18 @@ private final class SpectrogramBuffer: ObservableObject {
         let tones: [HarmonicTone]
     }
 
-    /// Build a full log-spaced history of the harmonic state at every
-    /// step from now back to `maxAge` seconds ago.
-    func prePopulate(now: Date, scales: [Int], maxAge: TimeInterval, samples: Int = 500) {
+    /// Linearly spaced samples across the full window.
+    func prePopulate(now: Date, scales: [Int], maxAge: TimeInterval, samples: Int = 400) {
         self.maxAge = maxAge
         var built: [Frame] = []
-        let logMax = log10(1 + maxAge)
         let denom = max(1, samples - 1)
+        let step = maxAge / Double(denom)
         for i in 0..<samples {
-            let frac = Double(i) / Double(denom)
-            let logAge = frac * logMax
-            let age = pow(10.0, logAge) - 1
+            let age = Double(i) * step
             let t = now.addingTimeInterval(-age)
             let tones = HarmonicAnalysis.activeTones(at: t, scales: scales)
             built.append(Frame(id: t, tones: tones))
         }
-        // Order oldest -> newest for predictable iteration
         frames = built.reversed()
     }
 }
@@ -299,22 +295,23 @@ private struct SpectrogramView: View {
     private let scaling: Int = 23
     private let minFreqHz: Double = 0.1
     private let maxFreqHz: Double = 50_000
-    /// One year (Julian) so the chart matches the year timeframe.
-    private let windowSeconds: TimeInterval = 365.25 * 24 * 3600
+    /// Quarter-moon window (~7.38 days) — short enough for hour-cycle
+    /// activity to read but long enough to span multiple day cycles.
+    private let windowSeconds: TimeInterval = 637_860
 
     var body: some View {
-        SwiftUI.TimelineView(.periodic(from: .now, by: 5.0)) { context in
-            VStack(spacing: 8) {
-                HStack {
-                    spatialToggleButton(
-                        label: fundamentalsOff ? "FUND OFF" : "FUND ON",
-                        active: !fundamentalsOff
-                    ) {
-                        fundamentalsOff.toggle()
-                    }
-                    Spacer()
+        VStack(spacing: 8) {
+            HStack {
+                spatialToggleButton(
+                    label: fundamentalsOff ? "FUND OFF" : "FUND ON",
+                    active: !fundamentalsOff
+                ) {
+                    fundamentalsOff.toggle()
                 }
+                Spacer()
+            }
 
+            SwiftUI.TimelineView(.animation(minimumInterval: 0.5, paused: false)) { context in
                 Canvas { ctx, size in
                     drawScope(in: &ctx, size: size, now: context.date)
                 }
@@ -323,11 +320,16 @@ private struct SpectrogramView: View {
                         .stroke(.white.opacity(0.15), lineWidth: 0.5)
                 )
             }
-            .onAppear {
+        }
+        // .task is bound to the view lifecycle, NOT to body re-renders.
+        // This avoids the @Published->body->.onChange->prePopulate->
+        // @Published feedback loop that pegged the CPU.
+        .task(id: "spectrogram-refresh") {
+            buffer.prePopulate(now: Date(), scales: [scaling], maxAge: windowSeconds)
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 10_000_000_000)
+                if Task.isCancelled { break }
                 buffer.prePopulate(now: Date(), scales: [scaling], maxAge: windowSeconds)
-            }
-            .onChange(of: context.date) { _, newDate in
-                buffer.prePopulate(now: newDate, scales: [scaling], maxAge: windowSeconds)
             }
         }
     }
@@ -341,7 +343,6 @@ private struct SpectrogramView: View {
         let axisWidth: CGFloat = 30
         let plotX = axisWidth
         let plotWidth = size.width - axisWidth
-        let logTime = log10(1 + windowSeconds)
 
         for d in [0.1, 1.0, 10.0, 100.0, 1_000.0, 10_000.0] {
             let y = mapY(d, logMin: logMinHz, range: hzRange, height: size.height)
@@ -358,7 +359,7 @@ private struct SpectrogramView: View {
         for frame in buffer.frames {
             let age = now.timeIntervalSince(frame.id)
             if age < 0 || age > windowSeconds { continue }
-            let xFrac = 1.0 - log10(1 + age) / logTime
+            let xFrac = 1.0 - age / windowSeconds
             let x = plotX + CGFloat(xFrac) * plotWidth
 
             for tone in frame.tones {
@@ -377,18 +378,20 @@ private struct SpectrogramView: View {
         cursor.addLine(to: CGPoint(x: size.width - 1, y: size.height))
         ctx.stroke(cursor, with: .color(.white.opacity(0.4)), lineWidth: 0.5)
 
+        let day: Double = 86_400
         let timeMarkers: [(Double, String)] = [
             (0, "now"),
-            (60, "1m"),
-            (3600, "1h"),
-            (86400, "1d"),
-            (604800, "1w"),
-            (2_551_442, "1mo"),
-            (windowSeconds, "1y"),
+            (day, "1d"),
+            (2 * day, "2d"),
+            (3 * day, "3d"),
+            (4 * day, "4d"),
+            (5 * day, "5d"),
+            (6 * day, "6d"),
+            (7 * day, "7d"),
         ]
         for (age, label) in timeMarkers {
             if age > windowSeconds + 1 { continue }
-            let xFrac = age <= 0 ? 1.0 : 1.0 - log10(1 + age) / logTime
+            let xFrac = 1.0 - age / windowSeconds
             let x = plotX + CGFloat(xFrac) * plotWidth
             let text = Text(label)
                 .font(.system(size: 7, design: .monospaced))
@@ -497,6 +500,14 @@ private struct ConvergenceEvent: Identifiable {
     let id: String
     let label: String
     let secondsAway: TimeInterval
+    let detail: String?
+
+    init(id: String, label: String, secondsAway: TimeInterval, detail: String? = nil) {
+        self.id = id
+        self.label = label
+        self.secondsAway = secondsAway
+        self.detail = detail
+    }
 }
 
 private struct ConvergenceView: View {
@@ -526,6 +537,23 @@ private struct ConvergenceView: View {
                     ForEach(pairAlignments(now: now).sorted { $0.secondsAway < $1.secondsAway }) { event in
                         eventRow(event)
                     }
+
+                    Text("NEXT CHORDS  ·  CROSS-TIMEFRAME")
+                        .font(.system(size: 9, design: .monospaced))
+                        .tracking(2)
+                        .foregroundStyle(.white.opacity(0.55))
+                        .padding(.top, 10)
+
+                    let chords = upcomingChords(now: now)
+                    if chords.isEmpty {
+                        Text("none in the next 24 hours")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.4))
+                    } else {
+                        ForEach(chords) { event in
+                            eventRow(event)
+                        }
+                    }
                 }
                 .padding(.vertical, 8)
             }
@@ -533,14 +561,21 @@ private struct ConvergenceView: View {
     }
 
     private func eventRow(_ event: ConvergenceEvent) -> some View {
-        HStack {
-            Text(event.label)
-                .font(.system(size: 11, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.85))
-            Spacer()
-            Text(formatDuration(event.secondsAway))
-                .font(.system(size: 11, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.6))
+        VStack(alignment: .leading, spacing: 1) {
+            HStack {
+                Text(event.label)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.85))
+                Spacer()
+                Text(formatDuration(event.secondsAway))
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.6))
+            }
+            if let detail = event.detail {
+                Text(detail)
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.4))
+            }
         }
     }
 
@@ -590,6 +625,90 @@ private struct ConvergenceView: View {
 
         let distance: Double = relRate > 0 ? (360 - diff) : diff
         return distance / abs(relRate)
+    }
+
+    /// Recognized musical intervals, cents within one octave. Tolerance
+    /// is applied separately. Just-intonation values.
+    private static let chordIntervals: [(name: String, cents: Double)] = [
+        ("Octave",            0),
+        ("Perfect Fifth",     701.96),
+        ("Perfect Fourth",    498.04),
+        ("Major Third",       386.31),
+        ("Minor Third",       315.64),
+        ("Major Sixth",       884.36),
+        ("Minor Sixth",       813.69),
+        ("Harmonic Seventh",  968.83),
+    ]
+
+    /// Step forward 24 hours at 5-min intervals, detect cross-timeframe
+    /// tone pairs whose ratio is within `tolerance` cents of a recognized
+    /// interval. Emit one event per unique (toneA, toneB, interval) — the
+    /// first time it occurs in the window.
+    private func upcomingChords(now: Date) -> [ConvergenceEvent] {
+        let horizonHours: Double = 24
+        let stepMinutes: Double = 5
+        let toleranceCents: Double = 25
+        let steps = Int(horizonHours * 60 / stepMinutes)
+
+        var events: [ConvergenceEvent] = []
+        var seen: Set<String> = []
+
+        for step in 0..<steps {
+            let dt = Double(step) * stepMinutes * 60
+            let t = now.addingTimeInterval(dt)
+            let tones = HarmonicAnalysis.activeTones(at: t, scales: [23])
+            guard tones.count >= 2 else { continue }
+
+            for i in 0..<tones.count {
+                for j in (i + 1)..<tones.count {
+                    let a = tones[i]
+                    let b = tones[j]
+                    if a.timeframe == b.timeframe { continue }
+                    if a.frequency <= 0 || b.frequency <= 0 { continue }
+
+                    let low = min(a.frequency, b.frequency)
+                    let high = max(a.frequency, b.frequency)
+                    let cents = 1200 * log2(high / low)
+                    let octaveCents = cents.truncatingRemainder(dividingBy: 1200)
+
+                    for interval in Self.chordIntervals {
+                        let distance = min(
+                            abs(octaveCents - interval.cents),
+                            abs(octaveCents - interval.cents - 1200),
+                            abs(octaveCents - interval.cents + 1200)
+                        )
+                        if distance > toleranceCents { continue }
+
+                        let key = "\(a.id)|\(b.id)|\(interval.name)"
+                        if seen.contains(key) { continue }
+                        seen.insert(key)
+
+                        events.append(ConvergenceEvent(
+                            id: key,
+                            label: "\(interval.name)",
+                            secondsAway: dt,
+                            detail: "\(toneLabel(a))  +  \(toneLabel(b))  ·  Δ\(Int(distance.rounded())) cents"
+                        ))
+                        break
+                    }
+                }
+            }
+        }
+
+        return events.sorted { $0.secondsAway < $1.secondsAway }.prefix(15).map { $0 }
+    }
+
+    private func toneLabel(_ tone: HarmonicTone) -> String {
+        let tfName: String
+        switch tone.timeframe {
+        case .year: tfName = "YR"
+        case .moon: tfName = "MN"
+        case .quarterMoon: tfName = "QM"
+        case .day: tfName = "DY"
+        case .hour: tfName = "HR"
+        case .minute: tfName = "MIN"
+        }
+        return tone.isFundamental ? tfName : "\(tfName)×\(tone.divisions)"
     }
 
     private func formatDuration(_ seconds: TimeInterval) -> String {

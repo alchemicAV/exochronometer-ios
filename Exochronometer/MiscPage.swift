@@ -28,6 +28,19 @@ enum MiscMode: String, CaseIterable, Identifiable {
     }
 }
 
+private func miscToggleButton(label: String, active: Bool, action: @escaping () -> Void) -> some View {
+    Button(action: action) {
+        Text(label)
+            .font(.system(size: 9, design: .monospaced))
+            .tracking(2)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .foregroundStyle(active ? .black : .white.opacity(0.7))
+            .background(Capsule().fill(active ? Color.white : .clear))
+            .overlay(Capsule().stroke(.white.opacity(0.3), lineWidth: 0.5))
+    }
+}
+
 struct MiscPage: View {
     @State private var mode: MiscMode = .phasePortrait
 
@@ -184,20 +197,34 @@ private struct PhasePortraitView: View {
 // MARK: - Cents Wheel
 
 private struct CentsWheelView: View {
+    @State private var fundamentalsOff: Bool = true
     private let scaling: Int = 23
     private let reference: Double = 432.0  // A4 = 432 Hz
 
     var body: some View {
         SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 10.0, paused: false)) { context in
             let tones = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
+            let displayed = fundamentalsOff ? tones.filter { !$0.isFundamental } : tones
 
-            Canvas { ctx, size in
-                drawWheel(in: &ctx, size: size, tones: tones)
+            VStack(spacing: 8) {
+                HStack {
+                    miscToggleButton(
+                        label: fundamentalsOff ? "FUND OFF" : "FUND ON",
+                        active: !fundamentalsOff
+                    ) {
+                        fundamentalsOff.toggle()
+                    }
+                    Spacer()
+                }
+
+                Canvas { ctx, size in
+                    drawWheel(in: &ctx, size: size, tones: displayed)
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(.white.opacity(0.15), lineWidth: 0.5)
+                )
             }
-            .background(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(.white.opacity(0.15), lineWidth: 0.5)
-            )
         }
     }
 

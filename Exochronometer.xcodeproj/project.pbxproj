@@ -113,11 +113,11 @@
 		7FEBE8A8127B73E5D3A384E6 /* JournalNote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalNote.swift; sourceTree = "<group>"; };
 		7FFD8A53138E30A8AED4ACCC /* AppPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPage.swift; sourceTree = "<group>"; };
 		81545523124ADB919BA662D3 /* HarmonicAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarmonicAudio.swift; sourceTree = "<group>"; };
-		81DC3ECB6E081274EFCE6722 /* ExochronometerWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ExochronometerWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		81DC3ECB6E081274EFCE6722 /* ExochronometerWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ExochronometerWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		852E7C525E0CE0D94B46ABDD /* HarmonicAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarmonicAnalysis.swift; sourceTree = "<group>"; };
 		85C15944A97104AD26BFFBFC /* FrequencyMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrequencyMath.swift; sourceTree = "<group>"; };
 		8D79A0121D1CFD1726F35628 /* TimeCircleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeCircleView.swift; sourceTree = "<group>"; };
-		8EBADADCD5B048AEC391902F /* Exochronometer.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Exochronometer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8EBADADCD5B048AEC391902F /* Exochronometer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Exochronometer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		925975E213F9F2691BB94EE4 /* MoonPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoonPhase.swift; sourceTree = "<group>"; };
 		B127A8F8B0697B7F5744F784 /* CirclesPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CirclesPage.swift; sourceTree = "<group>"; };
 		B24D3AA7174A3C6B07A91483 /* TimeframeIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeframeIntent.swift; sourceTree = "<group>"; };
@@ -416,9 +416,10 @@
 		2ACAF814837C2142AFBF9952 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = 922R668536;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -442,6 +443,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Exochronometer/Exochronometer.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 922R668536;
 				INFOPLIST_FILE = Exochronometer/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -457,9 +459,10 @@
 		682E8E0131D0422E40F6A4C7 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = 922R668536;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -481,6 +484,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ExochronometerWidget/ExochronometerWidget.entitlements;
+				DEVELOPMENT_TEAM = 922R668536;
 				INFOPLIST_FILE = ExochronometerWidget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -499,6 +503,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Exochronometer/Exochronometer.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 922R668536;
 				INFOPLIST_FILE = Exochronometer/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -515,6 +520,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ExochronometerWidget/ExochronometerWidget.entitlements;
+				DEVELOPMENT_TEAM = 922R668536;
 				INFOPLIST_FILE = ExochronometerWidget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

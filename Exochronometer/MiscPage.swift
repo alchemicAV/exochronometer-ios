@@ -1,50 +1,30 @@
 import SwiftUI
-import SceneKit
 import ExochronometerCore
 
 enum MiscMode: String, CaseIterable, Identifiable {
     case phasePortrait
     case centsWheel
-    case consonance
+    case dissonance
     case colorMapping
-    case mandala
-    case harmonicEntropy
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
-        case .phasePortrait:   return "PHASE"
-        case .centsWheel:      return "CENTS"
-        case .consonance:      return "ROUGHNESS"
-        case .colorMapping:    return "COLOR"
-        case .mandala:         return "MANDALA"
-        case .harmonicEntropy: return "ENTROPY"
+        case .phasePortrait: return "PHASE"
+        case .centsWheel:    return "CENTS"
+        case .dissonance:    return "DISSONANCE"
+        case .colorMapping:  return "COLOR"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .phasePortrait:   return "signal vs derivative · closed orbits = periodic"
-        case .centsWheel:      return "pitch class wheel relative to A4 = 432 Hz"
-        case .consonance:      return "Plomp-Levelt roughness across active pairs"
-        case .colorMapping:    return "log frequency mapped to hue · amplitude to weight"
-        case .mandala:         return "3D mandala · default polygons stacked in space"
-        case .harmonicEntropy: return "Shannon entropy of just-intonation ratio guesses"
+        case .phasePortrait: return "signal vs derivative · closed orbits = periodic"
+        case .centsWheel:    return "pitch class wheel relative to A4 = 432 Hz"
+        case .dissonance:    return "Tenney height + Shannon entropy of JI guesses"
+        case .colorMapping:  return "pitch class mapped to visible wavelength"
         }
-    }
-}
-
-private func miscToggleButton(label: String, active: Bool, action: @escaping () -> Void) -> some View {
-    Button(action: action) {
-        Text(label)
-            .font(.system(size: 9, design: .monospaced))
-            .tracking(2)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .foregroundStyle(active ? .black : .white.opacity(0.7))
-            .background(Capsule().fill(active ? Color.white : .clear))
-            .overlay(Capsule().stroke(.white.opacity(0.3), lineWidth: 0.5))
     }
 }
 
@@ -60,12 +40,10 @@ struct MiscPage: View {
 
             Group {
                 switch mode {
-                case .phasePortrait:   PhasePortraitView()
-                case .centsWheel:      CentsWheelView()
-                case .consonance:      ConsonanceView()
-                case .colorMapping:    ColorMappingView()
-                case .mandala:         MandalaView()
-                case .harmonicEntropy: HarmonicEntropyView()
+                case .phasePortrait: PhasePortraitView()
+                case .centsWheel:    CentsWheelView()
+                case .dissonance:    DissonanceView()
+                case .colorMapping:  ColorMappingView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -118,12 +96,14 @@ struct MiscPage: View {
 // MARK: - Phase Portrait
 
 private struct PhasePortraitView: View {
+    @AppStorage("globalFundamentalsOff") private var fundamentalsOff: Bool = true
     private let scaling: Int = 23
     private let windowSeconds: Double = 0.030
 
     var body: some View {
         SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
-            let tones = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
+            let all = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
+            let tones = fundamentalsOff ? all.filter { !$0.isFundamental } : all
 
             ZStack(alignment: .topLeading) {
                 Canvas { ctx, size in
@@ -140,7 +120,7 @@ private struct PhasePortraitView: View {
                     Text("dense filled region  →  quasi-periodic (incommensurate ratios)")
                         .font(.system(size: 8, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.4))
-                    Text("the timeframes are mutually incommensurate by nature")
+                    Text(fundamentalsOff ? "fundamentals filtered out (global)" : "fundamentals included")
                         .font(.system(size: 8, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.3))
                 }
@@ -206,7 +186,7 @@ private struct PhasePortraitView: View {
 // MARK: - Cents Wheel
 
 private struct CentsWheelView: View {
-    @State private var fundamentalsOff: Bool = true
+    @AppStorage("globalFundamentalsOff") private var fundamentalsOff: Bool = true
     private let scaling: Int = 23
     private let reference: Double = 432.0  // A4 = 432 Hz
 
@@ -215,25 +195,13 @@ private struct CentsWheelView: View {
             let tones = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
             let displayed = fundamentalsOff ? tones.filter { !$0.isFundamental } : tones
 
-            VStack(spacing: 8) {
-                HStack {
-                    miscToggleButton(
-                        label: fundamentalsOff ? "FUND OFF" : "FUND ON",
-                        active: !fundamentalsOff
-                    ) {
-                        fundamentalsOff.toggle()
-                    }
-                    Spacer()
-                }
-
-                Canvas { ctx, size in
-                    drawWheel(in: &ctx, size: size, tones: displayed)
-                }
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(.white.opacity(0.15), lineWidth: 0.5)
-                )
+            Canvas { ctx, size in
+                drawWheel(in: &ctx, size: size, tones: displayed)
             }
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(.white.opacity(0.15), lineWidth: 0.5)
+            )
         }
     }
 
@@ -279,309 +247,114 @@ private struct CentsWheelView: View {
     }
 }
 
-// MARK: - Consonance / Roughness
+// MARK: - Dissonance (Tenney height + Harmonic Entropy)
 
-private struct ConsonanceView: View {
+private struct DissonanceView: View {
+    @AppStorage("globalFundamentalsOff") private var fundamentalsOff: Bool = true
     private let scaling: Int = 23
 
-    var body: some View {
-        SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 10.0, paused: false)) { context in
-            let tones = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
-            let roughness = totalRoughness(tones)
-            let normalized = min(1.0, roughness / 4.0)
-
-            VStack(spacing: 20) {
-                Text(String(format: "%.3f", roughness))
-                    .font(.system(size: 36, weight: .ultraLight, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.9))
-
-                meter(value: normalized)
-                    .frame(height: 12)
-
-                HStack {
-                    Text("CONSONANT")
-                        .font(.system(size: 8, design: .monospaced))
-                        .tracking(2)
-                        .foregroundStyle(.white.opacity(0.4))
-                    Spacer()
-                    Text("DISSONANT")
-                        .font(.system(size: 8, design: .monospaced))
-                        .tracking(2)
-                        .foregroundStyle(.white.opacity(0.4))
-                }
-
-                Text("\(tones.count) active tones · \(tones.count * (tones.count - 1) / 2) pairs")
-                    .font(.system(size: 9, design: .monospaced))
-                    .tracking(1.5)
-                    .foregroundStyle(.white.opacity(0.4))
-                    .padding(.top, 12)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            .padding(.horizontal, 24)
-        }
-    }
-
-    private func meter(value: Double) -> some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(.white.opacity(0.15))
-                Capsule()
-                    .fill(.white.opacity(0.85))
-                    .frame(width: proxy.size.width * CGFloat(value))
-            }
-        }
-    }
-
-    /// Plomp & Levelt model — sum of pairwise roughness contributions,
-    /// weighted by tone amplitudes.
-    private func totalRoughness(_ tones: [HarmonicTone]) -> Double {
-        guard tones.count >= 2 else { return 0 }
-        var total: Double = 0
-        for i in 0..<tones.count {
-            for j in (i + 1)..<tones.count {
-                total += pairRoughness(tones[i], tones[j])
-            }
-        }
-        return total
-    }
-
-    private func pairRoughness(_ a: HarmonicTone, _ b: HarmonicTone) -> Double {
-        let f1 = min(a.frequency, b.frequency)
-        let f2 = max(a.frequency, b.frequency)
-        guard f1 > 0 else { return 0 }
-        let cb = 1.72 * pow(f1, 0.65)
-        let x = (f2 - f1) / (0.65 * cb)
-        let r = exp(-3.5 * x) - exp(-5.75 * x)
-        return max(0, r) * a.amplitude * b.amplitude
-    }
-}
-
-// MARK: - Color Mapping
-
-private struct ColorMappingView: View {
-    private let scaling: Int = 23
-
-    var body: some View {
-        SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
-            let tones = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
-            let color = blendedColor(tones)
-
-            ZStack {
-                color
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.black)
-
-                VStack {
-                    Spacer()
-                    Text(stats(tones))
-                        .font(.system(size: 9, design: .monospaced))
-                        .tracking(1.5)
-                        .foregroundStyle(.white.opacity(0.8))
-                        .shadow(color: .black, radius: 3)
-                        .padding(.bottom, 16)
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(.white.opacity(0.15), lineWidth: 0.5)
-            )
-        }
-    }
-
-    private func blendedColor(_ tones: [HarmonicTone]) -> Color {
-        guard !tones.isEmpty else { return .black }
-        var rSum: Double = 0
-        var gSum: Double = 0
-        var bSum: Double = 0
-        var weightSum: Double = 0
-
-        for tone in tones {
-            let hue = hueFor(frequency: tone.frequency)
-            let (r, g, b) = rgbFromHue(hue)
-            let w = tone.amplitude
-            rSum += r * w
-            gSum += g * w
-            bSum += b * w
-            weightSum += w
-        }
-        guard weightSum > 0 else { return .black }
-        return Color(
-            red: rSum / weightSum,
-            green: gSum / weightSum,
-            blue: bSum / weightSum
-        )
-    }
-
-    /// Map log frequency to hue. 0.1 Hz -> red, 50 kHz -> violet, log scale.
-    private func hueFor(frequency: Double) -> Double {
-        let logF = log10(max(0.0001, frequency))
-        let lo = log10(0.1)
-        let hi = log10(50_000.0)
-        let frac = (logF - lo) / (hi - lo)
-        return min(1, max(0, frac)) * 0.85  // 0..0.85 covers red->violet without wrapping
-    }
-
-    private func rgbFromHue(_ hue: Double) -> (Double, Double, Double) {
-        let h = hue * 6
-        let i = Int(h)
-        let f = h - Double(i)
-        switch i % 6 {
-        case 0: return (1, f, 0)
-        case 1: return (1 - f, 1, 0)
-        case 2: return (0, 1, f)
-        case 3: return (0, 1 - f, 1)
-        case 4: return (f, 0, 1)
-        default: return (1, 0, 1 - f)
-        }
-    }
-
-    private func stats(_ tones: [HarmonicTone]) -> String {
-        "\(tones.count) tones blended"
-    }
-}
-
-// MARK: - 3D Mandala
-
-private struct MandalaView: View {
-    @State private var scene: SCNScene = MandalaView.buildScene()
-
-    var body: some View {
-        SceneView(
-            scene: scene,
-            options: [.allowsCameraControl]
-        )
-        .background(Color.black)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .overlay(
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(.white.opacity(0.15), lineWidth: 0.5)
-        )
-    }
-
-    private static func buildScene() -> SCNScene {
-        let scene = SCNScene()
-        scene.background.contents = UIColor.black
-
-        let cameraNode = SCNNode()
-        cameraNode.camera = SCNCamera()
-        cameraNode.camera?.zNear = 0.1
-        cameraNode.camera?.zFar = 100
-        cameraNode.position = SCNVector3(0, 0, 14)
-        scene.rootNode.addChildNode(cameraNode)
-
-        let mandala = SCNNode()
-        let shapes = GeometryMath.defaultShapes
-        let center = Double(shapes.count - 1) / 2
-        for (idx, shape) in shapes.enumerated() {
-            let z = Float((Double(idx) - center) * 0.5)
-            mandala.addChildNode(makePolygon(shape: shape, z: z))
-        }
-
-        let rotation = SCNAction.repeatForever(
-            SCNAction.rotateBy(x: 0.4, y: 1.0, z: 0.1, duration: 30)
-        )
-        mandala.runAction(rotation)
-        scene.rootNode.addChildNode(mandala)
-
-        return scene
-    }
-
-    private static func makePolygon(shape: GeometryMath.Shape, z: Float) -> SCNNode {
-        let radius: Float = 2.5
-        var vertices: [SCNVector3] = []
-        vertices.reserveCapacity(shape.divisions)
-        for i in 0..<shape.divisions {
-            let angle = Float(i) * .pi * 2 / Float(shape.divisions) - .pi / 2
-            vertices.append(SCNVector3(
-                radius * cos(angle),
-                radius * sin(angle),
-                z
-            ))
-        }
-
-        var indices: [UInt16] = []
-        indices.reserveCapacity(shape.path.count * 2)
-        for edge in shape.path {
-            indices.append(UInt16(edge.from))
-            indices.append(UInt16(edge.to))
-        }
-
-        let source = SCNGeometrySource(vertices: vertices)
-        let element = SCNGeometryElement(
-            indices: indices,
-            primitiveType: .line
-        )
-        let geometry = SCNGeometry(sources: [source], elements: [element])
-
-        let material = SCNMaterial()
-        material.diffuse.contents = UIColor.white.withAlphaComponent(0.7)
-        material.lightingModel = .constant
-        material.isDoubleSided = true
-        geometry.materials = [material]
-
-        return SCNNode(geometry: geometry)
-    }
-}
-
-// MARK: - Harmonic Entropy
-
-private struct HarmonicEntropyView: View {
-    private let scaling: Int = 23
-
-    private static let jiRatios: [Double] = [
-        1.0,
-        16.0/15,
-        9.0/8,
-        6.0/5,
-        5.0/4,
-        4.0/3,
-        45.0/32,
-        3.0/2,
-        8.0/5,
-        5.0/3,
-        7.0/4,
-        15.0/8,
-        2.0,
+    /// Just-intonation reference set. Each ratio's Tenney height = log2(n*d).
+    /// 1:1 (Tenney 0) is most consonant; 45:32 (Tenney ~10.5) is most dissonant
+    /// of the standard set.
+    private static let jiRatios: [(n: Int, d: Int)] = [
+        (1, 1),
+        (16, 15),
+        (9, 8),
+        (6, 5),
+        (5, 4),
+        (4, 3),
+        (45, 32),
+        (3, 2),
+        (8, 5),
+        (5, 3),
+        (7, 4),
+        (15, 8),
+        (2, 1),
     ]
 
     var body: some View {
         SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 5.0, paused: false)) { context in
-            let tones = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
+            let all = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
+            let tones = fundamentalsOff ? all.filter { !$0.isFundamental } : all
+            let pairCount = max(1, tones.count * (tones.count - 1) / 2)
+
+            let tenney = totalTenney(tones)
             let entropy = totalEntropy(tones)
+
+            // Normalize each by per-pair maximum to make the meter meaningful.
+            let maxTenney = log2(45.0 * 32.0)   // worst Tenney in our ratio set
             let maxEntropy = log(Double(Self.jiRatios.count))
-            let normalized = maxEntropy > 0 ? min(1.0, entropy / (maxEntropy * Double(max(1, tones.count * (tones.count - 1) / 2)))) : 0
+            let normTenney = min(1.0, tenney / (maxTenney * Double(pairCount)))
+            let normEntropy = min(1.0, entropy / (maxEntropy * Double(pairCount)))
 
-            VStack(spacing: 20) {
-                Text(String(format: "%.3f", entropy))
-                    .font(.system(size: 36, weight: .ultraLight, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.9))
+            ScrollView {
+                VStack(spacing: 28) {
+                    measureBlock(
+                        title: "TENNEY  DISSONANCE",
+                        rawValue: tenney,
+                        normalized: normTenney,
+                        leftLabel: "CONSONANT",
+                        rightLabel: "DISSONANT",
+                        caption: "ratio complexity · log2(n·d), weighted by amplitude"
+                    )
 
-                meter(value: normalized)
-                    .frame(height: 12)
+                    measureBlock(
+                        title: "HARMONIC  ENTROPY",
+                        rawValue: entropy,
+                        normalized: normEntropy,
+                        leftLabel: "CLEAR",
+                        rightLabel: "AMBIGUOUS",
+                        caption: "Shannon entropy of JI ratio identity"
+                    )
 
-                HStack {
-                    Text("CLEAR")
-                        .font(.system(size: 8, design: .monospaced))
-                        .tracking(2)
-                        .foregroundStyle(.white.opacity(0.4))
-                    Spacer()
-                    Text("AMBIGUOUS")
-                        .font(.system(size: 8, design: .monospaced))
-                        .tracking(2)
+                    Text("\(tones.count) active tones · \(pairCount) pairs")
+                        .font(.system(size: 9, design: .monospaced))
+                        .tracking(1.5)
                         .foregroundStyle(.white.opacity(0.4))
                 }
-
-                Text("\(tones.count) active tones · summed Shannon entropy of JI-ratio guesses")
-                    .font(.system(size: 9, design: .monospaced))
-                    .tracking(1.5)
-                    .foregroundStyle(.white.opacity(0.4))
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 12)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 16)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            .padding(.horizontal, 24)
+        }
+    }
+
+    private func measureBlock(
+        title: String,
+        rawValue: Double,
+        normalized: Double,
+        leftLabel: String,
+        rightLabel: String,
+        caption: String
+    ) -> some View {
+        VStack(spacing: 8) {
+            Text(title)
+                .font(.system(size: 9, design: .monospaced))
+                .tracking(3)
+                .foregroundStyle(.white.opacity(0.55))
+
+            Text(String(format: "%.3f", rawValue))
+                .font(.system(size: 30, weight: .ultraLight, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.9))
+
+            meter(value: normalized)
+                .frame(height: 8)
+
+            HStack {
+                Text(leftLabel)
+                    .font(.system(size: 8, design: .monospaced))
+                    .tracking(2)
+                    .foregroundStyle(.white.opacity(0.4))
+                Spacer()
+                Text(rightLabel)
+                    .font(.system(size: 8, design: .monospaced))
+                    .tracking(2)
+                    .foregroundStyle(.white.opacity(0.4))
+            }
+
+            Text(caption)
+                .font(.system(size: 8, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.35))
+                .multilineTextAlignment(.center)
         }
     }
 
@@ -597,9 +370,51 @@ private struct HarmonicEntropyView: View {
         }
     }
 
-    /// Sum of pair entropies. Each pair's entropy is the Shannon entropy
-    /// over a Gaussian-weighted distribution of "this cents value matches
-    /// JI ratio X" probabilities, scaled by the product of amplitudes.
+    /// Tenney-height dissonance: for each pair, take a Gaussian-weighted
+    /// average of log2(n*d) over the JI ratio set (heavier weight where
+    /// the pair's cents distance is small). Sum across pairs weighted by
+    /// amplitude product.
+    private func totalTenney(_ tones: [HarmonicTone]) -> Double {
+        guard tones.count >= 2 else { return 0 }
+        var total: Double = 0
+        for i in 0..<tones.count {
+            for j in (i + 1)..<tones.count {
+                let a = tones[i]
+                let b = tones[j]
+                guard a.frequency > 0, b.frequency > 0 else { continue }
+                let lo = min(a.frequency, b.frequency)
+                let hi = max(a.frequency, b.frequency)
+                let cents = abs(1200 * log2(hi / lo))
+                let h = pairTenney(cents: cents)
+                total += h * a.amplitude * b.amplitude
+            }
+        }
+        return total
+    }
+
+    private func pairTenney(cents: Double, sigma: Double = 30) -> Double {
+        let octaveCents = (cents.truncatingRemainder(dividingBy: 1200) + 1200)
+            .truncatingRemainder(dividingBy: 1200)
+        var weighted: Double = 0
+        var weightSum: Double = 0
+        for (n, d) in Self.jiRatios {
+            let ratioCents = 1200 * log2(Double(n) / Double(d))
+            let dist = min(
+                abs(octaveCents - ratioCents),
+                abs(octaveCents - ratioCents - 1200),
+                abs(octaveCents - ratioCents + 1200)
+            )
+            let w = exp(-dist * dist / (2 * sigma * sigma))
+            let tenney = log2(Double(n * d))
+            weighted += tenney * w
+            weightSum += w
+        }
+        guard weightSum > 0 else { return log2(45.0 * 32.0) }
+        return weighted / weightSum
+    }
+
+    /// Same harmonic entropy as before: Shannon entropy of the Gaussian
+    /// probability distribution over JI ratios at the pair's cents.
     private func totalEntropy(_ tones: [HarmonicTone]) -> Double {
         guard tones.count >= 2 else { return 0 }
         var total: Double = 0
@@ -621,8 +436,8 @@ private struct HarmonicEntropyView: View {
             .truncatingRemainder(dividingBy: 1200)
         var probs: [Double] = []
         probs.reserveCapacity(Self.jiRatios.count)
-        for ratio in Self.jiRatios {
-            let ratioCents = 1200 * log2(ratio)
+        for (n, d) in Self.jiRatios {
+            let ratioCents = 1200 * log2(Double(n) / Double(d))
             let dist = min(
                 abs(octaveCents - ratioCents),
                 abs(octaveCents - ratioCents - 1200),
@@ -638,5 +453,127 @@ private struct HarmonicEntropyView: View {
             h -= pn * log(pn)
         }
         return h
+    }
+}
+
+// MARK: - Color Mapping (pitch-class to visible wavelength)
+
+private struct ColorMappingView: View {
+    @AppStorage("globalFundamentalsOff") private var fundamentalsOff: Bool = true
+    private let scaling: Int = 23
+    private let orderedTimeframes: [TimeFrame] = [.hour, .day, .quarterMoon, .moon, .year]
+
+    var body: some View {
+        SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 10.0, paused: false)) { context in
+            let all = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
+            let tones = fundamentalsOff ? all.filter { !$0.isFundamental } : all
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    swatch(
+                        title: "COMPOSITE",
+                        color: blendedColor(tones),
+                        count: tones.count,
+                        height: 90
+                    )
+
+                    Text("PER TIMEFRAME")
+                        .font(.system(size: 8, design: .monospaced))
+                        .tracking(2)
+                        .foregroundStyle(.white.opacity(0.4))
+                        .padding(.top, 8)
+
+                    ForEach(orderedTimeframes, id: \.self) { tf in
+                        let group = tones.filter { $0.timeframe == tf }
+                        swatch(
+                            title: timeframeLabel(tf),
+                            color: blendedColor(group),
+                            count: group.count,
+                            height: 36
+                        )
+                    }
+                }
+                .padding(.vertical, 8)
+            }
+        }
+    }
+
+    private func swatch(title: String, color: Color, count: Int, height: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(title)
+                    .font(.system(size: 9, design: .monospaced))
+                    .tracking(2)
+                    .foregroundStyle(.white.opacity(0.55))
+                Spacer()
+                Text("\(count)")
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.4))
+            }
+            RoundedRectangle(cornerRadius: 4)
+                .fill(color)
+                .frame(height: height)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(.white.opacity(0.18), lineWidth: 0.5)
+                )
+        }
+    }
+
+    private func timeframeLabel(_ tf: TimeFrame) -> String {
+        switch tf {
+        case .year:        return "YEAR"
+        case .moon:        return "MOON CYCLE"
+        case .quarterMoon: return "1/4 MOON"
+        case .day:         return "ONE DAY"
+        case .hour:        return "ONE HOUR"
+        case .minute:      return "ONE MINUTE"
+        }
+    }
+
+    private func blendedColor(_ tones: [HarmonicTone]) -> Color {
+        guard !tones.isEmpty else { return .black }
+        var r: Double = 0, g: Double = 0, b: Double = 0, w: Double = 0
+        for tone in tones {
+            guard tone.frequency > 0 else { continue }
+            let logF = log2(tone.frequency)
+            var pitchClass = logF - floor(logF)
+            if pitchClass < 0 { pitchClass += 1 }
+            let wavelength = 700.0 - pitchClass * (700.0 - 380.0)
+            let (cr, cg, cb) = wavelengthToRGB(wavelength)
+            r += cr * tone.amplitude
+            g += cg * tone.amplitude
+            b += cb * tone.amplitude
+            w += tone.amplitude
+        }
+        guard w > 0 else { return .black }
+        return Color(red: r / w, green: g / w, blue: b / w)
+    }
+
+    /// Bruton's wavelength-to-RGB approximation, nm -> sRGB triplet.
+    private func wavelengthToRGB(_ wavelength: Double) -> (Double, Double, Double) {
+        var r: Double = 0, g: Double = 0, b: Double = 0
+        switch wavelength {
+        case 380..<440:
+            r = -(wavelength - 440) / (440 - 380)
+            b = 1
+        case 440..<490:
+            g = (wavelength - 440) / (490 - 440)
+            b = 1
+        case 490..<510:
+            g = 1
+            b = -(wavelength - 510) / (510 - 490)
+        case 510..<580:
+            r = (wavelength - 510) / (580 - 510)
+            g = 1
+        case 580..<645:
+            r = 1
+            g = -(wavelength - 645) / (645 - 580)
+        case 645...780:
+            r = 1
+        default:
+            break
+        }
+        return (r, g, b)
     }
 }

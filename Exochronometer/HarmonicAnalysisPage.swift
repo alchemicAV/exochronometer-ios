@@ -52,7 +52,7 @@ enum ScaleMode: String {
 
 struct HarmonicAnalysisPage: View {
     @StateObject private var audio = HarmonicAudio(scales: [23])
-    @State private var fundamentalsOff: Bool = true
+    @AppStorage("globalFundamentalsOff") private var fundamentalsOff: Bool = true
     @State private var scaleMode: ScaleMode = .lo
     @State private var volume: Double = 0.5
 
@@ -135,13 +135,6 @@ struct HarmonicAnalysisPage: View {
                 } else {
                     audio.start()
                 }
-            }
-
-            toggleButton(
-                label: fundamentalsOff ? "FUND OFF" : "FUND ON",
-                active: !fundamentalsOff
-            ) {
-                fundamentalsOff.toggle()
             }
 
             toggleButton(

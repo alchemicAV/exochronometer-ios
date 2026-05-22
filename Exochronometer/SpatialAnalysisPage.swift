@@ -2,34 +2,34 @@ import SwiftUI
 import ExochronometerCore
 
 enum SpatialMode: String, CaseIterable, Identifiable {
-    case lissajous
-    case spectrogram
     case chladni
+    case spectrogram
+    case lissajous
     case convergence
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
-        case .lissajous:    return "LISSAJOUS"
-        case .spectrogram:  return "SPECTROGRAM"
         case .chladni:      return "CHLADNI"
+        case .spectrogram:  return "SPECTROGRAM"
+        case .lissajous:    return "LISSAJOUS"
         case .convergence:  return "CONVERGENCE"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .lissajous:   return "within-timeframe pairs · sectioned fast → slow"
-        case .spectrogram: return "linear · quarter-moon window · refreshes every 10s"
         case .chladni:     return "2D membrane modes summed by amplitude"
+        case .spectrogram: return "linear · quarter-moon window · refreshes every 10s"
+        case .lissajous:   return "within-timeframe pairs · sectioned fast → slow"
         case .convergence: return "time until next angular alignment (live)"
         }
     }
 }
 
 struct SpatialAnalysisPage: View {
-    @State private var mode: SpatialMode = .lissajous
+    @State private var mode: SpatialMode = .chladni
 
     var body: some View {
         VStack(spacing: 10) {
@@ -90,19 +90,6 @@ struct SpatialAnalysisPage: View {
                 }
             }
         }
-    }
-}
-
-private func spatialToggleButton(label: String, active: Bool, action: @escaping () -> Void) -> some View {
-    Button(action: action) {
-        Text(label)
-            .font(.system(size: 9, design: .monospaced))
-            .tracking(2)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .foregroundStyle(active ? .black : .white.opacity(0.7))
-            .background(Capsule().fill(active ? Color.white : .clear))
-            .overlay(Capsule().stroke(.white.opacity(0.3), lineWidth: 0.5))
     }
 }
 
@@ -290,7 +277,7 @@ private final class SpectrogramBuffer: ObservableObject {
 
 private struct SpectrogramView: View {
     @StateObject private var buffer = SpectrogramBuffer()
-    @State private var fundamentalsOff: Bool = true
+    @AppStorage("globalFundamentalsOff") private var fundamentalsOff: Bool = true
 
     private let scaling: Int = 23
     private let minFreqHz: Double = 0.1
@@ -300,30 +287,15 @@ private struct SpectrogramView: View {
     private let windowSeconds: TimeInterval = 637_860
 
     var body: some View {
-        VStack(spacing: 8) {
-            HStack {
-                spatialToggleButton(
-                    label: fundamentalsOff ? "FUND OFF" : "FUND ON",
-                    active: !fundamentalsOff
-                ) {
-                    fundamentalsOff.toggle()
-                }
-                Spacer()
+        SwiftUI.TimelineView(.animation(minimumInterval: 0.5, paused: false)) { context in
+            Canvas { ctx, size in
+                drawScope(in: &ctx, size: size, now: context.date)
             }
-
-            SwiftUI.TimelineView(.animation(minimumInterval: 0.5, paused: false)) { context in
-                Canvas { ctx, size in
-                    drawScope(in: &ctx, size: size, now: context.date)
-                }
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(.white.opacity(0.15), lineWidth: 0.5)
-                )
-            }
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(.white.opacity(0.15), lineWidth: 0.5)
+            )
         }
-        // .task is bound to the view lifecycle, NOT to body re-renders.
-        // This avoids the @Published->body->.onChange->prePopulate->
-        // @Published feedback loop that pegged the CPU.
         .task(id: "spectrogram-refresh") {
             buffer.prePopulate(now: Date(), scales: [scaling], maxAge: windowSeconds)
             while !Task.isCancelled {
@@ -415,11 +387,13 @@ private struct SpectrogramView: View {
 // MARK: - Chladni
 
 private struct ChladniView: View {
+    @AppStorage("globalFundamentalsOff") private var fundamentalsOff: Bool = true
     private let scaling: Int = 23
 
     var body: some View {
         SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 12.0, paused: false)) { context in
-            let tones = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
+            let all = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
+            let tones = fundamentalsOff ? all.filter { !$0.isFundamental } : all
 
             Canvas { ctx, size in
                 drawPlate(in: &ctx, size: size, tones: tones)

@@ -30,6 +30,9 @@ enum MiscMode: String, CaseIterable, Identifiable {
 
 struct MiscPage: View {
     @State private var mode: MiscMode = .phasePortrait
+    @State private var excludedTimeframes: Set<TimeFrame> = []
+
+    private let orderedTimeframes: [TimeFrame] = [.hour, .day, .quarterMoon, .moon, .year]
 
     var body: some View {
         VStack(spacing: 10) {
@@ -38,12 +41,15 @@ struct MiscPage: View {
             modePicker
                 .padding(.horizontal, 16)
 
+            timeframeFilterRow
+                .padding(.horizontal, 16)
+
             Group {
                 switch mode {
-                case .phasePortrait: PhasePortraitView()
-                case .centsWheel:    CentsWheelView()
-                case .dissonance:    DissonanceView()
-                case .colorMapping:  ColorMappingView()
+                case .phasePortrait: PhasePortraitView(excludedTimeframes: excludedTimeframes)
+                case .centsWheel:    CentsWheelView(excludedTimeframes: excludedTimeframes)
+                case .dissonance:    DissonanceView(excludedTimeframes: excludedTimeframes)
+                case .colorMapping:  ColorMappingView(excludedTimeframes: excludedTimeframes)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -91,19 +97,92 @@ struct MiscPage: View {
             }
         }
     }
+
+    private var timeframeFilterRow: some View {
+        HStack(spacing: 6) {
+            ForEach(orderedTimeframes, id: \.self) { tf in
+                let isExcluded = excludedTimeframes.contains(tf)
+                Button {
+                    if isExcluded {
+                        excludedTimeframes.remove(tf)
+                    } else {
+                        excludedTimeframes.insert(tf)
+                    }
+                } label: {
+                    Text(shortTimeframeLabel(tf))
+                        .font(.system(size: 8, design: .monospaced))
+                        .tracking(2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .foregroundStyle(.white.opacity(isExcluded ? 0.25 : 0.8))
+                        .background(Capsule().fill(.clear))
+                        .overlay(
+                            Capsule().stroke(.white.opacity(isExcluded ? 0.12 : 0.4), lineWidth: 0.5)
+                        )
+                }
+            }
+            Spacer()
+        }
+    }
+
+    private func shortTimeframeLabel(_ tf: TimeFrame) -> String {
+        switch tf {
+        case .year:        return "YEAR"
+        case .moon:        return "MOON"
+        case .quarterMoon: return "QTR"
+        case .day:         return "DAY"
+        case .hour:        return "HOUR"
+        case .minute:      return "MIN"
+        }
+    }
+}
+
+/// Shared filter helper for the four Misc analytical modes.
+private func filteredTones(
+    at date: Date,
+    scaling: Int,
+    fundamentalsOff: Bool,
+    excludedTimeframes: Set<TimeFrame>
+) -> [HarmonicTone] {
+    HarmonicAnalysis.activeTones(at: date, scales: [scaling]).filter { tone in
+        if excludedTimeframes.contains(tone.timeframe) { return false }
+        if fundamentalsOff && tone.isFundamental { return false }
+        return true
+    }
+}
+
+private func shortTimeframeName(_ tf: TimeFrame) -> String {
+    switch tf {
+    case .year:        return "YR"
+    case .moon:        return "MN"
+    case .quarterMoon: return "QM"
+    case .day:         return "DY"
+    case .hour:        return "HR"
+    case .minute:      return "MIN"
+    }
+}
+
+private func toneLabel(_ tone: HarmonicTone) -> String {
+    let name = shortTimeframeName(tone.timeframe)
+    return tone.isFundamental ? name : "\(name)\(tone.divisions)"
 }
 
 // MARK: - Phase Portrait
 
 private struct PhasePortraitView: View {
+    let excludedTimeframes: Set<TimeFrame>
     @AppStorage("globalFundamentalsOff") private var fundamentalsOff: Bool = true
     private let scaling: Int = 23
     private let windowSeconds: Double = 0.030
 
     var body: some View {
         SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
-            let all = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
-            let tones = fundamentalsOff ? all.filter { !$0.isFundamental } : all
+            let tones = filteredTones(
+                at: context.date,
+                scaling: scaling,
+                fundamentalsOff: fundamentalsOff,
+                excludedTimeframes: excludedTimeframes
+            )
 
             ZStack(alignment: .topLeading) {
                 Canvas { ctx, size in
@@ -186,17 +265,22 @@ private struct PhasePortraitView: View {
 // MARK: - Cents Wheel
 
 private struct CentsWheelView: View {
+    let excludedTimeframes: Set<TimeFrame>
     @AppStorage("globalFundamentalsOff") private var fundamentalsOff: Bool = true
     private let scaling: Int = 23
     private let reference: Double = 432.0  // A4 = 432 Hz
 
     var body: some View {
         SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 10.0, paused: false)) { context in
-            let tones = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
-            let displayed = fundamentalsOff ? tones.filter { !$0.isFundamental } : tones
+            let tones = filteredTones(
+                at: context.date,
+                scaling: scaling,
+                fundamentalsOff: fundamentalsOff,
+                excludedTimeframes: excludedTimeframes
+            )
 
             Canvas { ctx, size in
-                drawWheel(in: &ctx, size: size, tones: displayed)
+                drawWheel(in: &ctx, size: size, tones: tones)
             }
             .background(
                 RoundedRectangle(cornerRadius: 4)
@@ -243,6 +327,14 @@ private struct CentsWheelView: View {
             let alpha = tone.isFundamental ? 0.95 : tone.amplitude * 0.9
             let dot = CGRect(x: x - dotR, y: y - dotR, width: dotR * 2, height: dotR * 2)
             ctx.fill(Path(ellipseIn: dot), with: .color(.white.opacity(alpha)))
+
+            let labelDist = r - 14
+            let labelX = cx + labelDist * CGFloat(cos(angle))
+            let labelY = cy + labelDist * CGFloat(sin(angle))
+            let label = Text(toneLabel(tone))
+                .font(.system(size: 7, design: .monospaced))
+                .foregroundStyle(.white.opacity(min(0.85, alpha + 0.1)))
+            ctx.draw(label, at: CGPoint(x: labelX, y: labelY), anchor: .center)
         }
     }
 }
@@ -250,12 +342,10 @@ private struct CentsWheelView: View {
 // MARK: - Dissonance (Tenney height + Harmonic Entropy)
 
 private struct DissonanceView: View {
+    let excludedTimeframes: Set<TimeFrame>
     @AppStorage("globalFundamentalsOff") private var fundamentalsOff: Bool = true
     private let scaling: Int = 23
 
-    /// Just-intonation reference set. Each ratio's Tenney height = log2(n*d).
-    /// 1:1 (Tenney 0) is most consonant; 45:32 (Tenney ~10.5) is most dissonant
-    /// of the standard set.
     private static let jiRatios: [(n: Int, d: Int)] = [
         (1, 1),
         (16, 15),
@@ -274,15 +364,18 @@ private struct DissonanceView: View {
 
     var body: some View {
         SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 5.0, paused: false)) { context in
-            let all = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
-            let tones = fundamentalsOff ? all.filter { !$0.isFundamental } : all
+            let tones = filteredTones(
+                at: context.date,
+                scaling: scaling,
+                fundamentalsOff: fundamentalsOff,
+                excludedTimeframes: excludedTimeframes
+            )
             let pairCount = max(1, tones.count * (tones.count - 1) / 2)
 
             let tenney = totalTenney(tones)
             let entropy = totalEntropy(tones)
 
-            // Normalize each by per-pair maximum to make the meter meaningful.
-            let maxTenney = log2(45.0 * 32.0)   // worst Tenney in our ratio set
+            let maxTenney = log2(45.0 * 32.0)
             let maxEntropy = log(Double(Self.jiRatios.count))
             let normTenney = min(1.0, tenney / (maxTenney * Double(pairCount)))
             let normEntropy = min(1.0, entropy / (maxEntropy * Double(pairCount)))
@@ -370,10 +463,6 @@ private struct DissonanceView: View {
         }
     }
 
-    /// Tenney-height dissonance: for each pair, take a Gaussian-weighted
-    /// average of log2(n*d) over the JI ratio set (heavier weight where
-    /// the pair's cents distance is small). Sum across pairs weighted by
-    /// amplitude product.
     private func totalTenney(_ tones: [HarmonicTone]) -> Double {
         guard tones.count >= 2 else { return 0 }
         var total: Double = 0
@@ -413,8 +502,6 @@ private struct DissonanceView: View {
         return weighted / weightSum
     }
 
-    /// Same harmonic entropy as before: Shannon entropy of the Gaussian
-    /// probability distribution over JI ratios at the pair's cents.
     private func totalEntropy(_ tones: [HarmonicTone]) -> Double {
         guard tones.count >= 2 else { return 0 }
         var total: Double = 0
@@ -456,17 +543,22 @@ private struct DissonanceView: View {
     }
 }
 
-// MARK: - Color Mapping (pitch-class to visible wavelength)
+// MARK: - Color Mapping (closed octave wheel via magenta)
 
 private struct ColorMappingView: View {
+    let excludedTimeframes: Set<TimeFrame>
     @AppStorage("globalFundamentalsOff") private var fundamentalsOff: Bool = true
     private let scaling: Int = 23
     private let orderedTimeframes: [TimeFrame] = [.hour, .day, .quarterMoon, .moon, .year]
 
     var body: some View {
         SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 10.0, paused: false)) { context in
-            let all = HarmonicAnalysis.activeTones(at: context.date, scales: [scaling])
-            let tones = fundamentalsOff ? all.filter { !$0.isFundamental } : all
+            let tones = filteredTones(
+                at: context.date,
+                scaling: scaling,
+                fundamentalsOff: fundamentalsOff,
+                excludedTimeframes: excludedTimeframes
+            )
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
@@ -549,10 +641,6 @@ private struct ColorMappingView: View {
         return Color(red: r / w, green: g / w, blue: b / w)
     }
 
-    /// Map pitch class (0..1) to RGB along the full closed color wheel:
-    /// red → yellow → green → cyan → blue → magenta → red. Magenta is the
-    /// brain-constructed bridge that closes the visible spectrum into a
-    /// loop, matching music's closed octave.
     private func hueToRGB(_ hue: Double) -> (Double, Double, Double) {
         let h = hue * 6
         let hMod = h.truncatingRemainder(dividingBy: 6)
@@ -560,12 +648,12 @@ private struct ColorMappingView: View {
         let i = Int(normalized)
         let f = normalized - Double(i)
         switch i {
-        case 0:  return (1, f, 0)        // red → yellow
-        case 1:  return (1 - f, 1, 0)    // yellow → green
-        case 2:  return (0, 1, f)        // green → cyan
-        case 3:  return (0, 1 - f, 1)    // cyan → blue
-        case 4:  return (f, 0, 1)        // blue → magenta
-        default: return (1, 0, 1 - f)    // magenta → red
+        case 0:  return (1, f, 0)
+        case 1:  return (1 - f, 1, 0)
+        case 2:  return (0, 1, f)
+        case 3:  return (0, 1 - f, 1)
+        case 4:  return (f, 0, 1)
+        default: return (1, 0, 1 - f)
         }
     }
 }

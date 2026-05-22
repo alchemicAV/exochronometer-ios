@@ -614,20 +614,40 @@ private struct ConvergenceView: View {
         ("Harmonic Seventh",  968.83),
     ]
 
-    /// Step forward 24 hours at 5-min intervals, detect cross-timeframe
-    /// tone pairs whose ratio is within `tolerance` cents of a recognized
-    /// interval. Emit one event per unique (toneA, toneB, interval) — the
-    /// first time it occurs in the window.
+    /// Step forward 24 hours at 5-min intervals and report cross-timeframe
+    /// tone pairs that *newly* enter a chord state. Pairs already in chord
+    /// at t=now are excluded — otherwise the four permanent fundamental
+    /// pair relationships (e.g. Moon↔QtrMoon = 4:1 = octave, Day↔Hour =
+    /// 24:1 = perfect fifth across octaves) would dominate the list with
+    /// "0 sec" entries.
     private func upcomingChords(now: Date) -> [ConvergenceEvent] {
         let horizonHours: Double = 24
         let stepMinutes: Double = 5
         let toleranceCents: Double = 25
         let steps = Int(horizonHours * 60 / stepMinutes)
 
+        // First pass: snapshot every chord currently in effect at t=now.
+        let initialTones = HarmonicAnalysis.activeTones(at: now, scales: [23])
+        var alreadyInChord: Set<String> = []
+        for i in 0..<initialTones.count {
+            for j in (i + 1)..<initialTones.count {
+                let a = initialTones[i]
+                let b = initialTones[j]
+                if a.timeframe == b.timeframe { continue }
+                for interval in Self.chordIntervals {
+                    let d = chordDistance(a: a, b: b, interval: interval)
+                    if d <= toleranceCents {
+                        alreadyInChord.insert("\(a.id)|\(b.id)|\(interval.name)")
+                    }
+                }
+            }
+        }
+
+        // Second pass: walk the next 24 hours and collect newly-forming chords.
         var events: [ConvergenceEvent] = []
         var seen: Set<String> = []
 
-        for step in 0..<steps {
+        for step in 1..<steps {
             let dt = Double(step) * stepMinutes * 60
             let t = now.addingTimeInterval(dt)
             let tones = HarmonicAnalysis.activeTones(at: t, scales: [23])
@@ -638,22 +658,13 @@ private struct ConvergenceView: View {
                     let a = tones[i]
                     let b = tones[j]
                     if a.timeframe == b.timeframe { continue }
-                    if a.frequency <= 0 || b.frequency <= 0 { continue }
-
-                    let low = min(a.frequency, b.frequency)
-                    let high = max(a.frequency, b.frequency)
-                    let cents = 1200 * log2(high / low)
-                    let octaveCents = cents.truncatingRemainder(dividingBy: 1200)
 
                     for interval in Self.chordIntervals {
-                        let distance = min(
-                            abs(octaveCents - interval.cents),
-                            abs(octaveCents - interval.cents - 1200),
-                            abs(octaveCents - interval.cents + 1200)
-                        )
+                        let distance = chordDistance(a: a, b: b, interval: interval)
                         if distance > toleranceCents { continue }
 
                         let key = "\(a.id)|\(b.id)|\(interval.name)"
+                        if alreadyInChord.contains(key) { continue }
                         if seen.contains(key) { continue }
                         seen.insert(key)
 
@@ -670,6 +681,19 @@ private struct ConvergenceView: View {
         }
 
         return events.sorted { $0.secondsAway < $1.secondsAway }.prefix(15).map { $0 }
+    }
+
+    private func chordDistance(a: HarmonicTone, b: HarmonicTone, interval: (name: String, cents: Double)) -> Double {
+        guard a.frequency > 0, b.frequency > 0 else { return .infinity }
+        let low = min(a.frequency, b.frequency)
+        let high = max(a.frequency, b.frequency)
+        let cents = 1200 * log2(high / low)
+        let octaveCents = cents.truncatingRemainder(dividingBy: 1200)
+        return min(
+            abs(octaveCents - interval.cents),
+            abs(octaveCents - interval.cents - 1200),
+            abs(octaveCents - interval.cents + 1200)
+        )
     }
 
     private func toneLabel(_ tone: HarmonicTone) -> String {

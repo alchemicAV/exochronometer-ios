@@ -51,9 +51,9 @@ enum ScaleMode: String {
 }
 
 struct HarmonicAnalysisPage: View {
-    @StateObject private var audio = HarmonicAudio(scales: [23])
+    @StateObject private var audio = HarmonicAudio(scales: [23, 26])
     @AppStorage("globalFundamentalsOff") private var fundamentalsOff: Bool = true
-    @State private var scaleMode: ScaleMode = .lo
+    @State private var scaleMode: ScaleMode = .merged
     @State private var volume: Double = 0.5
 
     var body: some View {

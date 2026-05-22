@@ -9,7 +9,7 @@ struct AppHeader: View {
             Spacer()
                 .overlay(alignment: .trailing) {
                     fundButton
-                        .offset(x: -25, y: -10)
+                        .offset(x: -15, y: -5)
                 }
 
             VStack(spacing: 4) {
@@ -26,7 +26,7 @@ struct AppHeader: View {
             Spacer()
                 .overlay(alignment: .leading) {
                     menuButton
-                        .offset(x: 25, y: -10)
+                        .offset(x: 25, y: -5)
                 }
         }
         .padding(.top, 16)

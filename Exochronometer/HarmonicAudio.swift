@@ -153,9 +153,17 @@ final class HarmonicAudio: ObservableObject {
             }
         }
 
+        // Write phases back by ID. The tone bank may have been rebuilt by
+        // reconfigure() while this fill was running, so the array length
+        // and ordering may not match localTones. Look up by id to stay safe.
         lock.lock()
+        var phaseByID: [ToneID: Double] = [:]
+        phaseByID.reserveCapacity(localTones.count)
+        for t in localTones { phaseByID[t.id] = t.phase }
         for i in 0..<tones.count {
-            tones[i].phase = localTones[i].phase
+            if let phase = phaseByID[tones[i].id] {
+                tones[i].phase = phase
+            }
         }
         lock.unlock()
 

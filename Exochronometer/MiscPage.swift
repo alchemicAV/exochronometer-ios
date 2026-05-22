@@ -23,7 +23,7 @@ enum MiscMode: String, CaseIterable, Identifiable {
         case .phasePortrait: return "signal vs derivative · closed orbits = periodic"
         case .centsWheel:    return "pitch class wheel relative to A4 = 432 Hz"
         case .dissonance:    return "Tenney height + Shannon entropy of JI guesses"
-        case .colorMapping:  return "pitch class mapped to visible wavelength"
+        case .colorMapping:  return "pitch class mapped to closed color wheel via magenta"
         }
     }
 }
@@ -539,8 +539,7 @@ private struct ColorMappingView: View {
             let logF = log2(tone.frequency)
             var pitchClass = logF - floor(logF)
             if pitchClass < 0 { pitchClass += 1 }
-            let wavelength = 700.0 - pitchClass * (700.0 - 380.0)
-            let (cr, cg, cb) = wavelengthToRGB(wavelength)
+            let (cr, cg, cb) = hueToRGB(pitchClass)
             r += cr * tone.amplitude
             g += cg * tone.amplitude
             b += cb * tone.amplitude
@@ -550,30 +549,23 @@ private struct ColorMappingView: View {
         return Color(red: r / w, green: g / w, blue: b / w)
     }
 
-    /// Bruton's wavelength-to-RGB approximation, nm -> sRGB triplet.
-    private func wavelengthToRGB(_ wavelength: Double) -> (Double, Double, Double) {
-        var r: Double = 0, g: Double = 0, b: Double = 0
-        switch wavelength {
-        case 380..<440:
-            r = -(wavelength - 440) / (440 - 380)
-            b = 1
-        case 440..<490:
-            g = (wavelength - 440) / (490 - 440)
-            b = 1
-        case 490..<510:
-            g = 1
-            b = -(wavelength - 510) / (510 - 490)
-        case 510..<580:
-            r = (wavelength - 510) / (580 - 510)
-            g = 1
-        case 580..<645:
-            r = 1
-            g = -(wavelength - 645) / (645 - 580)
-        case 645...780:
-            r = 1
-        default:
-            break
+    /// Map pitch class (0..1) to RGB along the full closed color wheel:
+    /// red → yellow → green → cyan → blue → magenta → red. Magenta is the
+    /// brain-constructed bridge that closes the visible spectrum into a
+    /// loop, matching music's closed octave.
+    private func hueToRGB(_ hue: Double) -> (Double, Double, Double) {
+        let h = hue * 6
+        let hMod = h.truncatingRemainder(dividingBy: 6)
+        let normalized = hMod < 0 ? hMod + 6 : hMod
+        let i = Int(normalized)
+        let f = normalized - Double(i)
+        switch i {
+        case 0:  return (1, f, 0)        // red → yellow
+        case 1:  return (1 - f, 1, 0)    // yellow → green
+        case 2:  return (0, 1, f)        // green → cyan
+        case 3:  return (0, 1 - f, 1)    // cyan → blue
+        case 4:  return (f, 0, 1)        // blue → magenta
+        default: return (1, 0, 1 - f)    // magenta → red
         }
-        return (r, g, b)
     }
 }

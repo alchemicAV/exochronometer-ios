@@ -23,7 +23,7 @@ enum ScaleMode: String {
             return [
                 ToneAssignment(timeframe: .hour,        scale: 23),
                 ToneAssignment(timeframe: .day,         scale: 26),
-                ToneAssignment(timeframe: .quarterMoon, scale: 26),
+                ToneAssignment(timeframe: .quarterMoon, scale: 28),
                 ToneAssignment(timeframe: .moon,        scale: 29),
                 ToneAssignment(timeframe: .year,        scale: 29),
             ]
@@ -135,7 +135,7 @@ struct HarmonicAnalysisPage: View {
         switch scaleMode {
         case .lo:     scaleText = "× 2^23"
         case .hi:     scaleText = "× 2^26"
-        case .merged: scaleText = "HR:23 · DY/QM:26 · MN/YR:29"
+        case .merged: scaleText = "HR:23 · DY:26 · QM:28 · MN/YR:29"
         }
         return "\(scaleText)  ·  minute excluded"
     }

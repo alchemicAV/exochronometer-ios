@@ -424,6 +424,15 @@ private struct CentsWheelView: View {
             let labelX = cx + labelDist * CGFloat(cos(angle))
             let labelY = cy + labelDist * CGFloat(sin(angle))
 
+            // Anchor the text on the side closest to the dot so the text
+            // body always extends inward (toward center), never outward
+            // past the dot. e.g. dot on right → anchor trailing center,
+            // dot on top → anchor top center.
+            let anchor = UnitPoint(
+                x: 0.5 + CGFloat(cos(angle)) * 0.5,
+                y: 0.5 + CGFloat(sin(angle)) * 0.5
+            )
+
             var text = toneLabel(tone)
             if let remaining = entry.remainingLabel {
                 text += " · \(remaining)"
@@ -431,7 +440,7 @@ private struct CentsWheelView: View {
             let label = Text(text)
                 .font(.system(size: 7, design: .monospaced))
                 .foregroundStyle(.white.opacity(min(0.85, alpha + 0.1)))
-            ctx.draw(label, at: CGPoint(x: labelX, y: labelY), anchor: .center)
+            ctx.draw(label, at: CGPoint(x: labelX, y: labelY), anchor: anchor)
         }
     }
 }

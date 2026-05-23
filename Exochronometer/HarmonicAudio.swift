@@ -33,7 +33,16 @@ final class HarmonicAudio: ObservableObject {
     }
 
     init(scales: [Int] = [23]) {
-        rebuild(scales: scales)
+        let assignments = scales.flatMap { sc in
+            TimeFrame.allCases
+                .filter { $0 != .minute }
+                .map { ToneAssignment(timeframe: $0, scale: sc) }
+        }
+        rebuild(assignments: assignments)
+    }
+
+    init(assignments: [ToneAssignment]) {
+        rebuild(assignments: assignments)
     }
 
     func start() {
@@ -76,41 +85,53 @@ final class HarmonicAudio: ObservableObject {
         lock.unlock()
     }
 
-    /// Rebuild the oscillator bank for the given scale set, preserving each
-    /// tone's amplitude and phase across the change so audio keeps playing
-    /// without a click.
+    /// Rebuild the oscillator bank for a uniform scale set across all
+    /// non-minute timeframes. Kept for callers that don't care about
+    /// per-timeframe scaling.
     func reconfigure(scales: [Int]) {
-        rebuild(scales: scales)
+        let assignments = scales.flatMap { sc in
+            TimeFrame.allCases
+                .filter { $0 != .minute }
+                .map { ToneAssignment(timeframe: $0, scale: sc) }
+        }
+        rebuild(assignments: assignments)
     }
 
-    private func rebuild(scales: [Int]) {
+    /// Rebuild the oscillator bank from an explicit list of per-timeframe
+    /// scale assignments. Preserves each tone's amplitude and phase across
+    /// the change so audio keeps playing without a click.
+    func reconfigure(assignments: [ToneAssignment]) {
+        rebuild(assignments: assignments)
+    }
+
+    private func rebuild(assignments: [ToneAssignment]) {
         lock.lock()
         var prior: [ToneID: Tone] = [:]
         for t in tones { prior[t.id] = t }
 
         var rebuilt: [Tone] = []
-        for sc in scales {
+        for entry in assignments {
+            let tf = entry.timeframe
+            let sc = entry.scale
             let factor = pow(2.0, Double(sc))
-            for tf in TimeFrame.allCases where tf != .minute {
-                let fundamental = (1.0 / tf.cycleDuration) * factor
-                let fundId = ToneID(timeframe: tf, divisions: 1, octaves: sc)
-                let oldFund = prior[fundId]
+            let fundamental = (1.0 / tf.cycleDuration) * factor
+            let fundId = ToneID(timeframe: tf, divisions: 1, octaves: sc)
+            let oldFund = prior[fundId]
+            rebuilt.append(Tone(
+                id: fundId,
+                frequency: fundamental,
+                amplitude: oldFund?.amplitude ?? 0,
+                phase: oldFund?.phase ?? 0
+            ))
+            for div in 3...8 {
+                let id = ToneID(timeframe: tf, divisions: div, octaves: sc)
+                let old = prior[id]
                 rebuilt.append(Tone(
-                    id: fundId,
-                    frequency: fundamental,
-                    amplitude: oldFund?.amplitude ?? 0,
-                    phase: oldFund?.phase ?? 0
+                    id: id,
+                    frequency: fundamental * Double(div),
+                    amplitude: old?.amplitude ?? 0,
+                    phase: old?.phase ?? 0
                 ))
-                for div in 3...8 {
-                    let id = ToneID(timeframe: tf, divisions: div, octaves: sc)
-                    let old = prior[id]
-                    rebuilt.append(Tone(
-                        id: id,
-                        frequency: fundamental * Double(div),
-                        amplitude: old?.amplitude ?? 0,
-                        phase: old?.phase ?? 0
-                    ))
-                }
             }
         }
         tones = rebuilt

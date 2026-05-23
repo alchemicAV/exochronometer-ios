@@ -278,9 +278,10 @@ private struct CentsWheelView: View {
                 fundamentalsOff: fundamentalsOff,
                 excludedTimeframes: excludedTimeframes
             )
+            let positioned = layoutTones(tones, now: context.date)
 
             Canvas { ctx, size in
-                drawWheel(in: &ctx, size: size, tones: tones)
+                drawWheel(in: &ctx, size: size, positioned: positioned)
             }
             .background(
                 RoundedRectangle(cornerRadius: 4)
@@ -289,7 +290,99 @@ private struct CentsWheelView: View {
         }
     }
 
-    private func drawWheel(in ctx: inout GraphicsContext, size: CGSize, tones: [HarmonicTone]) {
+    private struct PositionedTone {
+        let tone: HarmonicTone
+        let angle: Double
+        let stackLevel: Int
+        let remainingLabel: String?
+    }
+
+    /// Compute angle on the wheel, assign a non-overlapping radial stack
+    /// level, and (for overtones) compute time-until-fade as a short
+    /// suffix like "3m" or "12s".
+    private func layoutTones(_ tones: [HarmonicTone], now: Date) -> [PositionedTone] {
+        struct Raw {
+            let tone: HarmonicTone
+            let angle: Double
+            let remaining: TimeInterval?
+        }
+
+        let raws: [Raw] = tones.compactMap { tone in
+            guard tone.frequency > 0 else { return nil }
+            let cents = 1200 * log2(tone.frequency / reference)
+            let pitchClass = (cents.truncatingRemainder(dividingBy: 1200) + 1200).truncatingRemainder(dividingBy: 1200)
+            let angle = (pitchClass / 1200) * 2 * .pi - .pi / 2
+            return Raw(tone: tone, angle: angle, remaining: timeRemaining(for: tone, at: now))
+        }
+
+        let sorted = raws.sorted { $0.angle < $1.angle }
+
+        var occupied: [(angle: Double, level: Int)] = []
+        var out: [PositionedTone] = []
+        let clusterThreshold: Double = 0.14   // ~8°
+
+        for raw in sorted {
+            var level = 0
+            while occupied.contains(where: { $0.level == level && angleDistance($0.angle, raw.angle) < clusterThreshold }) {
+                level += 1
+            }
+            occupied.append((raw.angle, level))
+            out.append(PositionedTone(
+                tone: raw.tone,
+                angle: raw.angle,
+                stackLevel: level,
+                remainingLabel: raw.remaining.map(formatRemaining)
+            ))
+        }
+        return out
+    }
+
+    private func angleDistance(_ a: Double, _ b: Double) -> Double {
+        var d = abs(a - b)
+        if d > .pi { d = 2 * .pi - d }
+        return d
+    }
+
+    /// Compute how long the overtone will remain above the active threshold.
+    /// Returns nil for fundamentals (always active) and for overtones that
+    /// are not currently inside an active fade window.
+    private func timeRemaining(for tone: HarmonicTone, at date: Date) -> TimeInterval? {
+        guard !tone.isFundamental else { return nil }
+        let tf = tone.timeframe
+        let n = tone.divisions
+        let currentDeg = tf.degree(at: date)
+        let fadeWindow = 0.03 * 360.0
+
+        var bestExitDelta: Double = .infinity
+        for i in 0..<n {
+            let node = Double(i) * 360.0 / Double(n)
+            var delta = node - currentDeg
+            while delta < -180 { delta += 360 }
+            while delta > 180 { delta -= 360 }
+
+            if delta >= -fadeWindow && delta < fadeWindow {
+                let exitDelta = delta + fadeWindow
+                if exitDelta < bestExitDelta {
+                    bestExitDelta = exitDelta
+                }
+            }
+        }
+
+        guard bestExitDelta.isFinite else { return nil }
+        let degreesPerSecond = 360.0 / tf.cycleDuration
+        return bestExitDelta / degreesPerSecond
+    }
+
+    private func formatRemaining(_ seconds: TimeInterval) -> String {
+        let s = max(0, seconds)
+        if s < 60        { return "\(Int(s.rounded()))s" }
+        if s < 3600      { return "\(Int(s / 60))m" }
+        if s < 86400     { return "\(Int(s / 3600))h" }
+        if s < 31557600  { return "\(Int(s / 86400))d" }
+        return "\(Int(s / 31557600))y"
+    }
+
+    private func drawWheel(in ctx: inout GraphicsContext, size: CGSize, positioned: [PositionedTone]) {
         let cx = size.width / 2
         let cy = size.height / 2
         let r = min(size.width, size.height) / 2 - 30
@@ -316,11 +409,9 @@ private struct CentsWheelView: View {
             ctx.stroke(tick, with: .color(.white.opacity(0.2)), lineWidth: 0.5)
         }
 
-        for tone in tones {
-            guard tone.frequency > 0 else { continue }
-            let cents = 1200 * log2(tone.frequency / reference)
-            let pitchClass = (cents.truncatingRemainder(dividingBy: 1200) + 1200).truncatingRemainder(dividingBy: 1200)
-            let angle = (pitchClass / 1200) * 2 * .pi - .pi / 2
+        for entry in positioned {
+            let tone = entry.tone
+            let angle = entry.angle
             let dotR: CGFloat = tone.isFundamental ? 5 : 3 + CGFloat(tone.amplitude * 2)
             let x = cx + r * CGFloat(cos(angle))
             let y = cy + r * CGFloat(sin(angle))
@@ -328,10 +419,16 @@ private struct CentsWheelView: View {
             let dot = CGRect(x: x - dotR, y: y - dotR, width: dotR * 2, height: dotR * 2)
             ctx.fill(Path(ellipseIn: dot), with: .color(.white.opacity(alpha)))
 
-            let labelDist = r - 14
+            let labelDist = r - 14 - CGFloat(entry.stackLevel) * 12
+            guard labelDist > 8 else { continue }
             let labelX = cx + labelDist * CGFloat(cos(angle))
             let labelY = cy + labelDist * CGFloat(sin(angle))
-            let label = Text(toneLabel(tone))
+
+            var text = toneLabel(tone)
+            if let remaining = entry.remainingLabel {
+                text += " · \(remaining)"
+            }
+            let label = Text(text)
                 .font(.system(size: 7, design: .monospaced))
                 .foregroundStyle(.white.opacity(min(0.85, alpha + 0.1)))
             ctx.draw(label, at: CGPoint(x: labelX, y: labelY), anchor: .center)

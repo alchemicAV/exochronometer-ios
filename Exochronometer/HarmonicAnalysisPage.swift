@@ -6,11 +6,27 @@ enum ScaleMode: String {
     case hi
     case merged
 
-    var scales: [Int] {
+    /// Per-timeframe scale assignments. In merged mode each timeframe gets
+    /// the smallest scale that puts its fundamental + overtones inside
+    /// audible — hour can stay at 23, day/qtr need 26, moon/year need 29.
+    var assignments: [ToneAssignment] {
         switch self {
-        case .lo:     return [23]
-        case .hi:     return [26]
-        case .merged: return [23, 26]
+        case .lo:
+            return TimeFrame.allCases
+                .filter { $0 != .minute }
+                .map { ToneAssignment(timeframe: $0, scale: 23) }
+        case .hi:
+            return TimeFrame.allCases
+                .filter { $0 != .minute }
+                .map { ToneAssignment(timeframe: $0, scale: 26) }
+        case .merged:
+            return [
+                ToneAssignment(timeframe: .hour,        scale: 23),
+                ToneAssignment(timeframe: .day,         scale: 26),
+                ToneAssignment(timeframe: .quarterMoon, scale: 26),
+                ToneAssignment(timeframe: .moon,        scale: 29),
+                ToneAssignment(timeframe: .year,        scale: 29),
+            ]
         }
     }
 
@@ -37,7 +53,7 @@ enum ScaleMode: String {
         switch self {
         case .lo:     return 0.1
         case .hi:     return 1
-        case .merged: return 0.1
+        case .merged: return 1
         }
     }
 
@@ -45,13 +61,13 @@ enum ScaleMode: String {
         switch self {
         case .lo:     return 50_000
         case .hi:     return 200_000
-        case .merged: return 200_000
+        case .merged: return 50_000
         }
     }
 }
 
 struct HarmonicAnalysisPage: View {
-    @StateObject private var audio = HarmonicAudio(scales: [23, 26])
+    @StateObject private var audio = HarmonicAudio(assignments: ScaleMode.merged.assignments)
     @AppStorage("globalFundamentalsOff") private var fundamentalsOff: Bool = true
     @State private var scaleMode: ScaleMode = .merged
     @State private var volume: Double = 0.5
@@ -119,7 +135,7 @@ struct HarmonicAnalysisPage: View {
         switch scaleMode {
         case .lo:     scaleText = "× 2^23"
         case .hi:     scaleText = "× 2^26"
-        case .merged: scaleText = "× 2^23 + 2^26"
+        case .merged: scaleText = "HR:23 · DY/QM:26 · MN/YR:29"
         }
         return "\(scaleText)  ·  minute excluded"
     }
@@ -142,7 +158,7 @@ struct HarmonicAnalysisPage: View {
                 active: scaleMode.isActive
             ) {
                 scaleMode = scaleMode.next
-                audio.reconfigure(scales: scaleMode.scales)
+                audio.reconfigure(assignments: scaleMode.assignments)
             }
 
             Spacer()
@@ -185,45 +201,45 @@ struct HarmonicAnalysisPage: View {
 
     private func activeTones(at date: Date) -> [SpectrumTone] {
         var out: [SpectrumTone] = []
-        for sc in scaleMode.scales {
+        for entry in scaleMode.assignments {
+            let tf = entry.timeframe
+            let sc = entry.scale
             let factor = pow(2.0, Double(sc))
-            for tf in TimeFrame.allCases where tf != .minute {
-                let fundamental = (1.0 / tf.cycleDuration) * factor
-                let degree = tf.degree(at: date)
-                let nextDegree = degree + 1.0
+            let fundamental = (1.0 / tf.cycleDuration) * factor
+            let degree = tf.degree(at: date)
+            let nextDegree = degree + 1.0
 
-                out.append(SpectrumTone(
-                    timeframe: tf,
-                    divisions: 1,
-                    octaves: sc,
-                    frequency: fundamental,
-                    amplitude: 1.0,
-                    state: .peak
-                ))
+            out.append(SpectrumTone(
+                timeframe: tf,
+                divisions: 1,
+                octaves: sc,
+                frequency: fundamental,
+                amplitude: 1.0,
+                state: .peak
+            ))
 
-                for div in 3...8 {
-                    let amp = FadeMath.shapeOpacity(currentDegree: degree, divisions: div)
-                    if amp > 0.01 {
-                        let nextAmp = FadeMath.shapeOpacity(currentDegree: nextDegree, divisions: div)
-                        let state: ToneState
-                        if amp > 0.95 && abs(nextAmp - amp) < 0.02 {
-                            state = .peak
-                        } else if nextAmp > amp {
-                            state = .waxing
-                        } else if nextAmp < amp {
-                            state = .waning
-                        } else {
-                            state = .peak
-                        }
-                        out.append(SpectrumTone(
-                            timeframe: tf,
-                            divisions: div,
-                            octaves: sc,
-                            frequency: fundamental * Double(div),
-                            amplitude: amp,
-                            state: state
-                        ))
+            for div in 3...8 {
+                let amp = FadeMath.shapeOpacity(currentDegree: degree, divisions: div)
+                if amp > 0.01 {
+                    let nextAmp = FadeMath.shapeOpacity(currentDegree: nextDegree, divisions: div)
+                    let state: ToneState
+                    if amp > 0.95 && abs(nextAmp - amp) < 0.02 {
+                        state = .peak
+                    } else if nextAmp > amp {
+                        state = .waxing
+                    } else if nextAmp < amp {
+                        state = .waning
+                    } else {
+                        state = .peak
                     }
+                    out.append(SpectrumTone(
+                        timeframe: tf,
+                        divisions: div,
+                        octaves: sc,
+                        frequency: fundamental * Double(div),
+                        amplitude: amp,
+                        state: state
+                    ))
                 }
             }
         }

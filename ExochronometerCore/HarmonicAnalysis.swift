@@ -25,42 +25,68 @@ public struct HarmonicTone: Identifiable, Hashable {
     public var isFundamental: Bool { divisions == 1 }
 }
 
+public struct ToneAssignment: Hashable, Sendable {
+    public let timeframe: TimeFrame
+    public let scale: Int
+
+    public init(timeframe: TimeFrame, scale: Int) {
+        self.timeframe = timeframe
+        self.scale = scale
+    }
+}
+
 public enum HarmonicAnalysis {
     /// All currently-active tones at one or more octave scalings.
-    /// Fundamentals are always returned at amplitude 1.0. Overtones for
-    /// divisions 3..8 are returned only when their `FadeMath.shapeOpacity`
-    /// is above `threshold`. The minute timeframe is excluded.
+    /// Convenience wrapper that produces an assignment for every
+    /// non-minute timeframe at every supplied scale.
     public static func activeTones(
         at date: Date,
         scales: [Int],
         threshold: Double = 0.01
     ) -> [HarmonicTone] {
+        let assignments = scales.flatMap { sc in
+            TimeFrame.allCases
+                .filter { $0 != .minute }
+                .map { ToneAssignment(timeframe: $0, scale: sc) }
+        }
+        return activeTones(at: date, assignments: assignments, threshold: threshold)
+    }
+
+    /// All currently-active tones across an explicit list of
+    /// (timeframe, scale) pairs. Lets the harmonic-analysis merged mode
+    /// place each timeframe at a different scaling so they all land in
+    /// audible range without duplicating each one across multiple scales.
+    public static func activeTones(
+        at date: Date,
+        assignments: [ToneAssignment],
+        threshold: Double = 0.01
+    ) -> [HarmonicTone] {
         var out: [HarmonicTone] = []
-        for sc in scales {
+        for entry in assignments {
+            let tf = entry.timeframe
+            let sc = entry.scale
             let factor = pow(2.0, Double(sc))
-            for tf in TimeFrame.allCases where tf != .minute {
-                let fundamental = (1.0 / tf.cycleDuration) * factor
-                let degree = tf.degree(at: date)
+            let fundamental = (1.0 / tf.cycleDuration) * factor
+            let degree = tf.degree(at: date)
 
-                out.append(HarmonicTone(
-                    timeframe: tf,
-                    divisions: 1,
-                    scaling: sc,
-                    frequency: fundamental,
-                    amplitude: 1.0
-                ))
+            out.append(HarmonicTone(
+                timeframe: tf,
+                divisions: 1,
+                scaling: sc,
+                frequency: fundamental,
+                amplitude: 1.0
+            ))
 
-                for div in 3...8 {
-                    let amp = FadeMath.shapeOpacity(currentDegree: degree, divisions: div)
-                    if amp > threshold {
-                        out.append(HarmonicTone(
-                            timeframe: tf,
-                            divisions: div,
-                            scaling: sc,
-                            frequency: fundamental * Double(div),
-                            amplitude: amp
-                        ))
-                    }
+            for div in 3...8 {
+                let amp = FadeMath.shapeOpacity(currentDegree: degree, divisions: div)
+                if amp > threshold {
+                    out.append(HarmonicTone(
+                        timeframe: tf,
+                        divisions: div,
+                        scaling: sc,
+                        frequency: fundamental * Double(div),
+                        amplitude: amp
+                    ))
                 }
             }
         }

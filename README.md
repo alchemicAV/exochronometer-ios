@@ -1,57 +1,91 @@
-# Exochronometer iOS
+# Exochronometer
 
-Native SwiftUI rewrite of [exochronometer](https://github.com/alchemicAV/exochronometer) — a geometric time visualization, plus home-screen and lock-screen widgets.
+Native SwiftUI implementation of [exochronometer](https://github.com/alchemicAV/exochronometer) —
+nested cycles of time (year, moon, quarter moon, day, hour, minute) rendered
+as circles, inscribed geometry, and a slowly evolving just-intonation chord.
 
-## Project status
+- **[THEORY.md](THEORY.md)** — the theory: cycles as tones, geometry as
+  harmonics, the fixed civil chord, the grand zero, the conjectures.
+- **[WIDGETS.md](WIDGETS.md)** — the instrument panel: every widget with its
+  math and how to read it.
+- **[DECISIONS.md](DECISIONS.md)** — dated decision log, corrections of
+  record, and open items.
 
-Early scaffold.
+## Targets
 
-- App: vertical stack of time circles (year / moon / quarter-moon / day / hour / minute) with smooth animation.
-- Widget bundle: configurable large home-screen widget and a circular lock-screen widget. User picks the timeframe per widget instance; add it twice for two different views.
-- **Not ported yet:** geometry overlays (inscribed polygons / star polygons), ghost trails, journal, timeline view.
+### Exochronometer (iOS app)
+- **Circles** — the six time circles with breathing {n/k} polygon overlays,
+  journal note markers, and node date labels.
+- **Timeline** — vertical journal/snapshot history.
+- **Geometry Harmonics** — reference view of every shape's period,
+  frequency, and nearest JI note.
+- **Harmonic Analysis** — live spectrum of sounding tones (per-timeframe
+  octave lifts, waxing/waning states) with sine-bank audio.
+- **Spatial Analysis** — Chladni interference, Lissajous pairs,
+  spectrogram, phase portrait, chord convergences.
+- **Misc** — Tenney dissonance + harmonic entropy meters, cents wheel,
+  octave color mapping.
+- **Journal** — snapshot notes that capture the full state of the moment
+  (`ExoSnapshot` JSON) and snap to phase nodes on every circle.
 
-## Requirements
+### ExochronometerMac (macOS observatory)
+Freeform widget canvas (drag/lasso layout, presets) hosting all sixteen
+widgets (see WIDGETS.md), plus:
+- **Snapshot mode** — pin every widget to any captured instant; the whole
+  panel is a pure function of timestamp.
+- **Trigger engine** — rules that fire PNG+caption captures on geometry
+  peaks, boundaries, and meter thresholds, with cooldowns, dry-run mode,
+  and a year-long simulation calibrator (Calibration menu, ⌘⇧K).
+- **X auto-poster** — optional posting of fired triggers via the X API
+  (OAuth 2.0; credentials live in the Keychain, never in the repo).
 
-- Xcode 26+ on macOS
-- iOS 17+ deployment target
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) for regenerating the project file (`brew install xcodegen`)
+### ExochronometerWidget (WidgetKit)
+Configurable home-screen (`.systemLarge`) and lock-screen
+(`.accessoryCircular`) chronometer. Pick the timeframe per instance; add it
+multiple times for multiple views. Minute is excluded (widget refresh
+cadence makes it useless).
+
+### ExochronometerCore
+Pure-Swift shared framework: time/moon/geometry math, fade and winding
+activation, harmonic tones, dissonance/entropy, chord detection and
+forward projection, JI mapping, snapshot codec, SwiftData journal model.
+Both apps and the widget link it, so every surface computes the same state.
 
 ## Build
+
+Requires Xcode 26+ and [XcodeGen](https://github.com/yonaskolb/XcodeGen)
+(`brew install xcodegen`).
 
 ```bash
 xcodegen generate
 open Exochronometer.xcodeproj
 ```
 
-Pick the **Exochronometer** scheme, an iPhone simulator, and ⌘R.
+Schemes: **Exochronometer** (iOS), **ExochronometerMac** (macOS). Pick a
+simulator or `My Mac` and ⌘R.
 
-## Running on a physical iPhone (no paid Developer Program)
+### Running on a physical iPhone (no paid Developer Program)
 
 1. Plug in your device, trust this Mac.
-2. Xcode → Signing & Capabilities → set your free Apple ID as the team. Xcode will auto-generate a personal provisioning profile.
-3. Build & run. The app will be installed but the signing profile expires in 7 days.
-4. To auto-re-sign over Wi-Fi without manually rebuilding, use [AltStore](https://altstore.io) or [SideStore](https://sidestore.io).
-
-## Widget configuration
-
-Long-press a widget → **Edit Widget** → pick a timeframe (Year, Moon, Quarter Moon, Day, Hour). Minute is excluded because widget refresh cadence (~minutes) makes a continuously-spinning minute hand useless. Add the widget more than once with different timeframes for multiple views on the home screen.
+2. Xcode → Signing & Capabilities → set your free Apple ID as the team.
+3. Build & run; the personal provisioning profile expires after 7 days.
+4. [AltStore](https://altstore.io) or [SideStore](https://sidestore.io)
+   can re-sign over Wi-Fi.
 
 ## Project layout
 
-- `ExochronometerCore/` — Pure-Swift time, moon, and geometry math. Shared framework linked by both app and widget.
-- `Exochronometer/` — SwiftUI app target.
-- `ExochronometerWidget/` — WidgetKit extension. Targets `.systemLarge` and `.accessoryCircular`.
-- `project.yml` — [XcodeGen](https://github.com/yonaskolb/XcodeGen) spec. The `.xcodeproj` is generated from this. Re-run `xcodegen generate` after editing.
+- `ExochronometerCore/` — shared math + models framework
+- `Exochronometer/` — iOS app
+- `ExochronometerMac/` — macOS observatory (`Widgets/`, `X/`)
+- `ExochronometerWidget/` — WidgetKit extension
+- `Tools/` — app icon generator
+- `project.yml` — XcodeGen spec; re-run `xcodegen generate` after editing
 
-## App Group
+App and widget share the `group.com.alchemicav.exochronometer` App Group
+so journal data is readable by the widget.
 
-App and widget share `group.com.alchemicav.exochronometer` so journal data (once ported) is readable by the widget.
+## Open items
 
-## Roadmap
-
-- [ ] Port geometry overlay rendering (inscribed polygons / star polygons)
-- [ ] Port ghost trails
-- [ ] Port journal (SwiftData, App Group shared store)
-- [ ] Port timeline view
-- [ ] App icon + widget gallery previews
-- [ ] Live Activity for in-progress timeframes?
+Tracked in [DECISIONS.md](DECISIONS.md#open-items): meter recalibration
+after the winding-tone change, episode dedup for chord posts (watch item),
+knob sensitivity analysis, and the conjecture experiments.

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import ExochronometerCore
 
 struct TimelinePage: View {
     @Query(sort: \JournalNote.timestamp, order: .reverse) private var notes: [JournalNote]

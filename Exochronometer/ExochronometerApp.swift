@@ -1,6 +1,7 @@
 import AppIntents
 import SwiftData
 import SwiftUI
+import ExochronometerCore
 
 @main
 struct ExochronometerApp: App {

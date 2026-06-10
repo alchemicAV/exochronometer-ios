@@ -1,4 +1,5 @@
 import SwiftUI
+import ExochronometerCore
 
 struct NotePanel: View {
     let notes: [JournalNote]

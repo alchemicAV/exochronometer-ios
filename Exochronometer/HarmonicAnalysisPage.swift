@@ -53,7 +53,7 @@ enum ScaleMode: String {
         switch self {
         case .lo:     return 0.1
         case .hi:     return 1
-        case .merged: return 1
+        case .merged: return 15   // year fundamental ~17 Hz; cut empty sub-15 Hz band
         }
     }
 
@@ -71,17 +71,24 @@ struct HarmonicAnalysisPage: View {
     @AppStorage("globalFundamentalsOff") private var fundamentalsOff: Bool = true
     @State private var scaleMode: ScaleMode = .merged
     @State private var volume: Double = 0.5
+    @State private var excludedTimeframes: Set<TimeFrame> = []
+    @State private var useLogScale: Bool = true
+
+    private let orderedTimeframes: [TimeFrame] = [.hour, .day, .quarterMoon, .moon, .year]
 
     var body: some View {
         VStack(spacing: 10) {
             header
             controlsRow
                 .padding(.horizontal, 20)
+            timeframeFilterRow
+                .padding(.horizontal, 20)
             volumeRow
                 .padding(.horizontal, 20)
 
             SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
-                let active = activeTones(at: context.date)
+                let allActive = activeTones(at: context.date)
+                let active = allActive.filter { !excludedTimeframes.contains($0.timeframe) }
                 let displayedTones = fundamentalsOff
                     ? active.filter { $0.divisions != 1 }
                     : active
@@ -91,7 +98,8 @@ struct HarmonicAnalysisPage: View {
                         tones: displayedTones,
                         minFreqHz: scaleMode.minFreqHz,
                         maxFreqHz: scaleMode.maxFreqHz,
-                        showScaleSuffix: scaleMode.isMerged
+                        showScaleSuffix: scaleMode.isMerged,
+                        useLogScale: useLogScale
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.horizontal, 16)
@@ -161,7 +169,52 @@ struct HarmonicAnalysisPage: View {
                 audio.reconfigure(assignments: scaleMode.assignments)
             }
 
+            toggleButton(
+                label: useLogScale ? "LOG" : "LINEAR",
+                active: !useLogScale
+            ) {
+                useLogScale.toggle()
+            }
+
             Spacer()
+        }
+    }
+
+    private var timeframeFilterRow: some View {
+        HStack(spacing: 6) {
+            ForEach(orderedTimeframes, id: \.self) { tf in
+                let isExcluded = excludedTimeframes.contains(tf)
+                Button {
+                    if isExcluded {
+                        excludedTimeframes.remove(tf)
+                    } else {
+                        excludedTimeframes.insert(tf)
+                    }
+                } label: {
+                    Text(shortTimeframeLabel(tf))
+                        .font(.system(size: 8, design: .monospaced))
+                        .tracking(2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .foregroundStyle(.white.opacity(isExcluded ? 0.25 : 0.8))
+                        .background(Capsule().fill(.clear))
+                        .overlay(
+                            Capsule().stroke(.white.opacity(isExcluded ? 0.12 : 0.4), lineWidth: 0.5)
+                        )
+                }
+            }
+            Spacer()
+        }
+    }
+
+    private func shortTimeframeLabel(_ tf: TimeFrame) -> String {
+        switch tf {
+        case .year:        return "YEAR"
+        case .moon:        return "MOON"
+        case .quarterMoon: return "QTR"
+        case .day:         return "DAY"
+        case .hour:        return "HOUR"
+        case .minute:      return "MIN"
         }
     }
 
@@ -222,23 +275,38 @@ struct HarmonicAnalysisPage: View {
                 let amp = FadeMath.shapeOpacity(currentDegree: degree, divisions: div)
                 if amp > 0.01 {
                     let nextAmp = FadeMath.shapeOpacity(currentDegree: nextDegree, divisions: div)
-                    let state: ToneState
-                    if amp > 0.95 && abs(nextAmp - amp) < 0.02 {
-                        state = .peak
-                    } else if nextAmp > amp {
-                        state = .waxing
-                    } else if nextAmp < amp {
-                        state = .waning
-                    } else {
-                        state = .peak
-                    }
                     out.append(SpectrumTone(
                         timeframe: tf,
                         divisions: div,
                         octaves: sc,
                         frequency: fundamental * Double(div),
                         amplitude: amp,
-                        state: state
+                        state: toneState(amp: amp, nextAmp: nextAmp)
+                    ))
+                }
+            }
+
+            // Winding tones ({7/3}, {8/3}) — distinct pitch classes with
+            // winding-aware activation (see HarmonicAnalysis.activeTones).
+            let state = FadeMath.TimeframeState(timeframe: tf, date: date)
+            let nextDate = date.addingTimeInterval(tf.cycleDuration / 360.0)
+            let nextState = FadeMath.TimeframeState(timeframe: tf, date: nextDate)
+            for shape in GeometryMath.defaultShapes where GeometryMath.oddPart(shape.skip) > 1 {
+                var amp = 0.0
+                var nextAmp = 0.0
+                for vertex in 0..<shape.divisions {
+                    amp = max(amp, FadeMath.nodeActivation(shape: shape, vertexIndex: vertex, state: state))
+                    nextAmp = max(nextAmp, FadeMath.nodeActivation(shape: shape, vertexIndex: vertex, state: nextState))
+                }
+                if amp > 0.01 {
+                    out.append(SpectrumTone(
+                        timeframe: tf,
+                        divisions: shape.divisions,
+                        skip: shape.skip,
+                        octaves: sc,
+                        frequency: fundamental * Double(shape.divisions) / Double(shape.skip),
+                        amplitude: amp,
+                        state: toneState(amp: amp, nextAmp: nextAmp)
                     ))
                 }
             }
@@ -246,12 +314,24 @@ struct HarmonicAnalysisPage: View {
         return out
     }
 
+    private func toneState(amp: Double, nextAmp: Double) -> ToneState {
+        if amp > 0.95 && abs(nextAmp - amp) < 0.02 {
+            return .peak
+        } else if nextAmp > amp {
+            return .waxing
+        } else if nextAmp < amp {
+            return .waning
+        } else {
+            return .peak
+        }
+    }
+
     private func pushAudio(active: [SpectrumTone]) {
         guard audio.isRunning else { return }
         var amps: [ToneID: Double] = [:]
         for tone in active {
             if fundamentalsOff && tone.divisions == 1 { continue }
-            let id = ToneID(timeframe: tone.timeframe, divisions: tone.divisions, octaves: tone.octaves)
+            let id = ToneID(timeframe: tone.timeframe, divisions: tone.divisions, skip: tone.skip, octaves: tone.octaves)
             amps[id] = tone.amplitude
         }
         audio.update(amplitudes: amps)
@@ -273,13 +353,16 @@ enum ToneState {
 struct SpectrumTone: Identifiable {
     let timeframe: TimeFrame
     let divisions: Int
+    var skip: Int = 1
     let octaves: Int
     let frequency: Double
     let amplitude: Double
     let state: ToneState
 
-    var id: String { "\(timeframe.rawValue)-\(divisions)-\(octaves)" }
+    var id: String { "\(timeframe.rawValue)-\(divisions)/\(skip)-\(octaves)" }
     var isFundamental: Bool { divisions == 1 }
+    /// "7" for integer harmonics, "7/3" for winding tones.
+    var divisionLabel: String { skip == 1 ? "\(divisions)" : "\(divisions)/\(skip)" }
 }
 
 private func compactTimeframeName(_ tf: TimeFrame) -> String {
@@ -362,6 +445,13 @@ private struct VerticalSpectrum: View {
     let minFreqHz: Double
     let maxFreqHz: Double
     let showScaleSuffix: Bool
+    let useLogScale: Bool
+
+    /// In linear mode the 20k-200k range eats most of the chart and
+    /// shows nothing — clip to the audible ceiling.
+    private var effectiveMaxFreqHz: Double {
+        useLogScale ? maxFreqHz : min(maxFreqHz, 20_000)
+    }
 
     var body: some View {
         Canvas { ctx, size in
@@ -370,46 +460,51 @@ private struct VerticalSpectrum: View {
     }
 
     private func drawAll(in ctx: inout GraphicsContext, size: CGSize) {
-        let logMin = log10(minFreqHz)
-        let logMax = log10(maxFreqHz)
-        let range = logMax - logMin
-        guard range > 0 else { return }
+        let logRange = log10(effectiveMaxFreqHz) - log10(minFreqHz)
+        let linearRange = effectiveMaxFreqHz - minFreqHz
+        let activeRange = useLogScale ? logRange : linearRange
+        guard activeRange > 0 else { return }
 
         let axisWidth: CGFloat = 38
         let baselineX: CGFloat = axisWidth + 6
         let labelX: CGFloat = axisWidth + 6 + 140 + 8
         let maxBarWidth: CGFloat = 140
-        let decades = decadeValues(min: minFreqHz, max: maxFreqHz)
+        let ticks = useLogScale
+            ? decadeValues(min: minFreqHz, max: effectiveMaxFreqHz)
+            : linearTickValues(min: minFreqHz, max: effectiveMaxFreqHz, count: 6)
 
-        drawAudibleBand(in: &ctx, size: size, logMin: logMin, range: range, baselineX: baselineX)
-        drawGrid(in: &ctx, size: size, logMin: logMin, range: range, baselineX: baselineX, decades: decades)
-        drawAxisLabels(in: &ctx, size: size, logMin: logMin, range: range, decades: decades)
+        drawAudibleBand(in: &ctx, size: size, baselineX: baselineX)
+        drawGrid(in: &ctx, size: size, baselineX: baselineX, ticks: ticks)
+        drawAxisLabels(in: &ctx, size: size, ticks: ticks)
         drawTones(
             in: &ctx,
             size: size,
-            logMin: logMin,
-            range: range,
             baselineX: baselineX,
             maxBarWidth: maxBarWidth,
             labelX: labelX
         )
     }
 
-    private func mapY(_ freq: Double, logMin: Double, range: Double, height: CGFloat) -> CGFloat {
-        let frac = (log10(freq) - logMin) / range
-        return height * (1.0 - CGFloat(frac))
+    private func mapY(_ freq: Double, height: CGFloat) -> CGFloat {
+        if useLogScale {
+            let frac = (log10(freq) - log10(minFreqHz)) / (log10(effectiveMaxFreqHz) - log10(minFreqHz))
+            return height * (1.0 - CGFloat(frac))
+        } else {
+            let frac = (freq - minFreqHz) / (effectiveMaxFreqHz - minFreqHz)
+            return height * (1.0 - CGFloat(frac))
+        }
     }
 
-    private func drawAudibleBand(in ctx: inout GraphicsContext, size: CGSize, logMin: Double, range: Double, baselineX: CGFloat) {
-        let yLo = mapY(20, logMin: logMin, range: range, height: size.height)
-        let yHi = mapY(20_000, logMin: logMin, range: range, height: size.height)
+    private func drawAudibleBand(in ctx: inout GraphicsContext, size: CGSize, baselineX: CGFloat) {
+        let yLo = mapY(20, height: size.height)
+        let yHi = mapY(20_000, height: size.height)
         let band = CGRect(x: baselineX, y: yHi, width: size.width - baselineX, height: yLo - yHi)
         ctx.fill(Path(band), with: .color(.white.opacity(0.04)))
     }
 
-    private func drawGrid(in ctx: inout GraphicsContext, size: CGSize, logMin: Double, range: Double, baselineX: CGFloat, decades: [Double]) {
-        for d in decades {
-            let y = mapY(d, logMin: logMin, range: range, height: size.height)
+    private func drawGrid(in ctx: inout GraphicsContext, size: CGSize, baselineX: CGFloat, ticks: [Double]) {
+        for d in ticks {
+            let y = mapY(d, height: size.height)
             var p = Path()
             p.move(to: CGPoint(x: baselineX, y: y))
             p.addLine(to: CGPoint(x: size.width, y: y))
@@ -421,9 +516,9 @@ private struct VerticalSpectrum: View {
         ctx.stroke(spine, with: .color(.white.opacity(0.3)), lineWidth: 0.5)
     }
 
-    private func drawAxisLabels(in ctx: inout GraphicsContext, size: CGSize, logMin: Double, range: Double, decades: [Double]) {
-        for (i, d) in decades.enumerated() {
-            let y = mapY(d, logMin: logMin, range: range, height: size.height)
+    private func drawAxisLabels(in ctx: inout GraphicsContext, size: CGSize, ticks: [Double]) {
+        for (i, d) in ticks.enumerated() {
+            let y = mapY(d, height: size.height)
             let label = i == 0 ? "\(decadeLabel(d)) Hz" : decadeLabel(d)
             let text = Text(label)
                 .font(.system(size: 8, design: .monospaced))
@@ -432,18 +527,22 @@ private struct VerticalSpectrum: View {
         }
     }
 
+    private func linearTickValues(min: Double, max: Double, count: Int) -> [Double] {
+        let n = Swift.max(2, count)
+        let step = (max - min) / Double(n - 1)
+        return (0..<n).map { min + Double($0) * step }
+    }
+
     private func drawTones(
         in ctx: inout GraphicsContext,
         size: CGSize,
-        logMin: Double,
-        range: Double,
         baselineX: CGFloat,
         maxBarWidth: CGFloat,
         labelX: CGFloat
     ) {
         for tone in tones {
-            guard tone.frequency >= minFreqHz, tone.frequency <= maxFreqHz else { continue }
-            let y = mapY(tone.frequency, logMin: logMin, range: range, height: size.height)
+            guard tone.frequency >= minFreqHz, tone.frequency <= effectiveMaxFreqHz else { continue }
+            let y = mapY(tone.frequency, height: size.height)
             let length = maxBarWidth * CGFloat(tone.amplitude)
 
             var bar = Path()
@@ -464,7 +563,7 @@ private struct VerticalSpectrum: View {
             ctx.fill(Path(ellipseIn: dot), with: .color(color))
 
             let name = compactTimeframeName(tone.timeframe)
-            let prefix = tone.isFundamental ? name : "\(name)×\(tone.divisions)"
+            let prefix = tone.isFundamental ? name : "\(name)×\(tone.divisionLabel)"
             let scaleSuffix = showScaleSuffix ? " @\(tone.octaves)" : ""
             let freqLabel = FrequencyMath.format(tone.frequency)
             let stateSuffix = tone.isFundamental ? "" : "  ·  \(tone.state.label)"

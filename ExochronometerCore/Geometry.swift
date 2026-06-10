@@ -11,6 +11,17 @@ public enum GeometryMath {
         return a
     }
 
+    /// Largest odd divisor — the pitch class of an integer multiplier
+    /// under octave equivalence. A {n/k} star's winding frequency is
+    /// (n/k)·f, so its pitch class is oddPart(n)/oddPart(k); a star
+    /// introduces a pitch class the regular polygon lacks iff
+    /// oddPart(k) > 1 (k = 2 stars are exact octaves, k = 3 are not).
+    public static func oddPart(_ n: Int) -> Int {
+        var x = abs(n)
+        while x > 1 && x % 2 == 0 { x /= 2 }
+        return x
+    }
+
     public struct Edge: Hashable, Sendable {
         public let from: Int
         public let to: Int

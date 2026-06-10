@@ -12,7 +12,7 @@ struct JournalInput: View {
             TextField(
                 "",
                 text: $text,
-                prompt: Text("JOURNAL")
+                prompt: Text("SNAPSHOT NOTE  ·  OPTIONAL")
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.35))
             )
@@ -25,11 +25,10 @@ struct JournalInput: View {
             .onSubmit(submit)
 
             Button(action: submit) {
-                Image(systemName: "arrow.up.circle.fill")
+                Image(systemName: "camera.aperture")
                     .font(.system(size: 22))
-                    .foregroundStyle(.white.opacity(text.isEmpty ? 0.25 : 0.8))
+                    .foregroundStyle(.white.opacity(0.8))
             }
-            .disabled(text.isEmpty)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -39,13 +38,22 @@ struct JournalInput: View {
 
     private func submit() {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
         let now = Date()
-        var dict: [String: Double] = [:]
-        for frame in TimeFrame.allCases {
-            dict[frame.rawValue] = frame.degree(at: now)
+        let snapshot = ExoSnapshot.capture(at: now, note: trimmed)
+
+        var degrees: [String: Double] = [:]
+        for entry in snapshot.timeframes {
+            degrees[entry.timeframe.rawValue] = entry.degree
         }
-        ctx.insert(JournalNote(timestamp: now, text: trimmed, degrees: dict))
+        let snapshotJSON = (try? snapshot.jsonString()) ?? ""
+
+        ctx.insert(JournalNote(
+            timestamp: now,
+            text: trimmed,
+            degrees: degrees,
+            snapshotJSON: snapshotJSON,
+            schemaVersion: ExoSnapshot.currentVersion
+        ))
         text = ""
     }
 }

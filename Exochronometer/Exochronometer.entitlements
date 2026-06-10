@@ -6,5 +6,18 @@
     <array>
         <string>group.com.alchemicav.exochronometer</string>
     </array>
+    <!--
+    CloudKit / iCloud disabled pending paid Apple Developer Program.
+    Uncomment when ready to re-enable cross-device snapshot sync.
+
+    <key>com.apple.developer.icloud-services</key>
+    <array>
+        <string>CloudKit</string>
+    </array>
+    <key>com.apple.developer.icloud-container-identifiers</key>
+    <array>
+        <string>iCloud.com.alchemicav.exochronometer</string>
+    </array>
+    -->
 </dict>
 </plist>

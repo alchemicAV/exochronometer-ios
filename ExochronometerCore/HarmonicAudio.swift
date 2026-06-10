@@ -1,16 +1,28 @@
 import AVFoundation
-import ExochronometerCore
+import Foundation
 
-struct ToneID: Hashable {
-    let timeframe: TimeFrame
-    let divisions: Int
-    let octaves: Int
+public struct ToneID: Hashable, Sendable {
+    public let timeframe: TimeFrame
+    public let divisions: Int
+    public let skip: Int
+    public let octaves: Int
+
+    public init(timeframe: TimeFrame, divisions: Int, skip: Int = 1, octaves: Int) {
+        self.timeframe = timeframe
+        self.divisions = divisions
+        self.skip = skip
+        self.octaves = octaves
+    }
 }
 
 /// Sums sine oscillators on the audio thread. UI updates each tone's
 /// amplitude per frame; the engine fills buffers continuously.
-final class HarmonicAudio: ObservableObject {
-    @Published private(set) var isRunning: Bool = false
+///
+/// Cross-platform: uses AVAudioEngine on both iOS and macOS. The iOS
+/// AVAudioSession setup is wrapped in `#if os(iOS)` — macOS doesn't
+/// need a session.
+public final class HarmonicAudio: ObservableObject {
+    @Published public private(set) var isRunning: Bool = false
 
     private let engine = AVAudioEngine()
     private var sourceNode: AVAudioSourceNode?
@@ -27,12 +39,12 @@ final class HarmonicAudio: ObservableObject {
     private var _volume: Double = 0.5
     private let lock = NSLock()
 
-    var volume: Double {
+    public var volume: Double {
         get { lock.lock(); defer { lock.unlock() }; return _volume }
         set { lock.lock(); _volume = newValue; lock.unlock() }
     }
 
-    init(scales: [Int] = [23]) {
+    public init(scales: [Int] = [23]) {
         let assignments = scales.flatMap { sc in
             TimeFrame.allCases
                 .filter { $0 != .minute }
@@ -41,11 +53,11 @@ final class HarmonicAudio: ObservableObject {
         rebuild(assignments: assignments)
     }
 
-    init(assignments: [ToneAssignment]) {
+    public init(assignments: [ToneAssignment]) {
         rebuild(assignments: assignments)
     }
 
-    func start() {
+    public func start() {
         guard !engine.isRunning else { return }
         configureSession()
 
@@ -68,7 +80,7 @@ final class HarmonicAudio: ObservableObject {
         }
     }
 
-    func stop() {
+    public func stop() {
         engine.stop()
         if let src = sourceNode {
             engine.detach(src)
@@ -77,7 +89,7 @@ final class HarmonicAudio: ObservableObject {
         DispatchQueue.main.async { self.isRunning = false }
     }
 
-    func update(amplitudes: [ToneID: Double]) {
+    public func update(amplitudes: [ToneID: Double]) {
         lock.lock()
         for i in 0..<tones.count {
             tones[i].amplitude = amplitudes[tones[i].id] ?? 0
@@ -88,7 +100,7 @@ final class HarmonicAudio: ObservableObject {
     /// Rebuild the oscillator bank for a uniform scale set across all
     /// non-minute timeframes. Kept for callers that don't care about
     /// per-timeframe scaling.
-    func reconfigure(scales: [Int]) {
+    public func reconfigure(scales: [Int]) {
         let assignments = scales.flatMap { sc in
             TimeFrame.allCases
                 .filter { $0 != .minute }
@@ -100,7 +112,7 @@ final class HarmonicAudio: ObservableObject {
     /// Rebuild the oscillator bank from an explicit list of per-timeframe
     /// scale assignments. Preserves each tone's amplitude and phase across
     /// the change so audio keeps playing without a click.
-    func reconfigure(assignments: [ToneAssignment]) {
+    public func reconfigure(assignments: [ToneAssignment]) {
         rebuild(assignments: assignments)
     }
 
@@ -133,15 +145,29 @@ final class HarmonicAudio: ObservableObject {
                     phase: old?.phase ?? 0
                 ))
             }
+            // Winding tones ({7/3}, {8/3}) — distinct pitch classes at
+            // (n/k)·f, sounded when their path-visit windows arise.
+            for shape in GeometryMath.defaultShapes where GeometryMath.oddPart(shape.skip) > 1 {
+                let id = ToneID(timeframe: tf, divisions: shape.divisions, skip: shape.skip, octaves: sc)
+                let old = prior[id]
+                rebuilt.append(Tone(
+                    id: id,
+                    frequency: fundamental * Double(shape.divisions) / Double(shape.skip),
+                    amplitude: old?.amplitude ?? 0,
+                    phase: old?.phase ?? 0
+                ))
+            }
         }
         tones = rebuilt
         lock.unlock()
     }
 
     private func configureSession() {
+        #if os(iOS)
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
         try? session.setActive(true)
+        #endif
     }
 
     private func fill(buffer: UnsafeMutablePointer<AudioBufferList>, frameCount: Int) -> OSStatus {

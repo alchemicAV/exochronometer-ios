@@ -215,11 +215,19 @@ private struct LissajousCell: View {
         }
     }
 
+    /// Frequency ratio in lowest integer terms. A winding tone's frequency
+    /// is divisions/skip × fundamental, so the pair ratio is
+    /// (aDiv·bSkip):(bDiv·aSkip).
+    private var ratio: (m: Int, n: Int) {
+        let a = pair.a.divisions * pair.b.skip
+        let b = pair.b.divisions * pair.a.skip
+        let g = gcd(a, b)
+        return (a / g, b / g)
+    }
+
     private var label: String {
-        let aDiv = pair.a.divisions
-        let bDiv = pair.b.divisions
-        let g = gcd(aDiv, bDiv)
-        return "\(aDiv / g):\(bDiv / g)"
+        let r = ratio
+        return "\(r.m):\(r.n)"
     }
 
     private func drawCurve(in ctx: inout GraphicsContext, size: CGSize) {
@@ -227,11 +235,7 @@ private struct LissajousCell: View {
         let cy = size.height / 2
         let r = min(size.width, size.height) / 2 - 4
 
-        let aDiv = pair.a.divisions
-        let bDiv = pair.b.divisions
-        let g = gcd(aDiv, bDiv)
-        let m = aDiv / g
-        let n = bDiv / g
+        let (m, n) = ratio
 
         let samples = 800
         var path = Path()
@@ -470,256 +474,201 @@ private struct ChladniView: View {
 
 // MARK: - Convergence
 
-private struct ConvergenceEvent: Identifiable {
-    let id: String
-    let label: String
-    let secondsAway: TimeInterval
-    let detail: String?
-
-    init(id: String, label: String, secondsAway: TimeInterval, detail: String? = nil) {
-        self.id = id
-        self.label = label
-        self.secondsAway = secondsAway
-        self.detail = detail
-    }
-}
-
 private struct ConvergenceView: View {
-    private let timeframes: [TimeFrame] = TimeFrame.allCases.filter { $0 != .minute }
+    @AppStorage("globalFundamentalsOff") private var fundamentalsOff: Bool = true
+
+    private static let lookahead: TimeInterval = 30 * 86400 // 1 month
+    private static let maxResults = 40
+
+    @State private var current: [ChordMatch] = []
+    @State private var events: [ChordEvent] = []
+    @State private var loading: Bool = true
+    @State private var anchorDate: Date = .distantPast
 
     var body: some View {
         SwiftUI.TimelineView(.periodic(from: .now, by: 1.0)) { context in
-            let now = context.date
+            content(at: context.date)
+        }
+    }
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("NEXT 0° ZERO-CROSSINGS")
-                        .font(.system(size: 9, design: .monospaced))
-                        .tracking(2)
-                        .foregroundStyle(.white.opacity(0.55))
+    @ViewBuilder
+    private func content(at date: Date) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                currentSection(now: date)
+                upcomingSection(now: date)
+            }
+            .padding(.vertical, 8)
+        }
+        .task(id: recomputeKey(for: date)) {
+            await recompute(at: date)
+        }
+    }
 
-                    ForEach(zeroCrossings(now: now)) { event in
-                        eventRow(event)
-                    }
+    private func recomputeKey(for date: Date) -> String {
+        let bucket = Int(date.timeIntervalSinceReferenceDate / 300)
+        return "\(bucket)|\(fundamentalsOff ? 1 : 0)|H"
+    }
 
-                    Text("NEXT PAIR ALIGNMENTS")
-                        .font(.system(size: 9, design: .monospaced))
-                        .tracking(2)
-                        .foregroundStyle(.white.opacity(0.55))
-                        .padding(.top, 10)
-
-                    ForEach(pairAlignments(now: now).sorted { $0.secondsAway < $1.secondsAway }) { event in
-                        eventRow(event)
-                    }
-
-                    Text("NEXT CHORDS  ·  CROSS-TIMEFRAME")
-                        .font(.system(size: 9, design: .monospaced))
-                        .tracking(2)
-                        .foregroundStyle(.white.opacity(0.55))
-                        .padding(.top, 10)
-
-                    let chords = upcomingChords(now: now)
-                    if chords.isEmpty {
-                        Text("none in the next 24 hours")
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.4))
-                    } else {
-                        ForEach(chords) { event in
-                            eventRow(event)
-                        }
-                    }
+    @ViewBuilder
+    private func currentSection(now: Date) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("NOW")
+                .font(.system(size: 9, design: .monospaced))
+                .tracking(2)
+                .foregroundStyle(.white.opacity(0.55))
+            if loading {
+                Text("…computing")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.35))
+            } else if current.isEmpty {
+                Text("no recognized chord active")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.4))
+            } else {
+                ForEach(current.prefix(5), id: \.id) { match in
+                    currentRow(match)
                 }
-                .padding(.vertical, 8)
             }
         }
     }
 
-    private func eventRow(_ event: ConvergenceEvent) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
-            HStack {
-                Text(event.label)
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.85))
-                Spacer()
-                Text(formatDuration(event.secondsAway))
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.6))
-            }
-            if let detail = event.detail {
-                Text(detail)
+    @ViewBuilder
+    private func upcomingSection(now: Date) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("CROSS-TIMEFRAME CONVERGENCES")
+                    .font(.system(size: 9, design: .monospaced))
+                    .tracking(2)
+                    .foregroundStyle(.white.opacity(0.55))
+                Text("next 30 days  ·  nearest first")
                     .font(.system(size: 8, design: .monospaced))
+                    .tracking(1.5)
                     .foregroundStyle(.white.opacity(0.4))
             }
+            .padding(.top, 4)
+            if loading {
+                Text("…computing")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.35))
+            } else if events.isEmpty {
+                Text("none predicted in window")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.4))
+            } else {
+                ForEach(events, id: \.id) { event in
+                    upcomingRow(event, now: now)
+                }
+            }
         }
     }
 
-    private func zeroCrossings(now: Date) -> [ConvergenceEvent] {
-        timeframes.map { tf in
-            let degree = tf.degree(at: now)
-            let positive = degree.truncatingRemainder(dividingBy: 360)
-            let normalized = positive < 0 ? positive + 360 : positive
-            let secondsRemaining = (360 - normalized) / 360 * tf.cycleDuration
-            return ConvergenceEvent(
-                id: "zero-\(tf.rawValue)",
-                label: tf.label,
-                secondsAway: secondsRemaining
+    private func currentRow(_ match: ChordMatch) -> some View {
+        HStack {
+            Text(match.pattern.abbreviation)
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundStyle(.white)
+            Text(signatureText(match.tones.map {
+                ChordEvent.ToneSignature(timeframe: $0.timeframe, divisions: $0.divisions, skip: $0.skip)
+            }))
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.7))
+            Spacer()
+            Text("fit \(String(format: "%.1f", match.fitCents))¢")
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.55))
+        }
+    }
+
+    private func upcomingRow(_ event: ChordEvent, now: Date) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(event.pattern.abbreviation)
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.white)
+                Text(signatureText(event.toneSignature))
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.7))
+                Spacer()
+                Text(timeUntil(event.startTime, from: now))
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.85))
+            }
+            HStack(spacing: 10) {
+                Text("fit \(String(format: "%.1f", event.fitCents))¢")
+                Text("dur \(durationText(event.endTime.timeIntervalSince(event.startTime)))")
+            }
+            .font(.system(size: 8, design: .monospaced))
+            .foregroundStyle(.white.opacity(0.35))
+        }
+    }
+
+    private func signatureText(_ sig: [ChordEvent.ToneSignature]) -> String {
+        sig.map { compactTF($0.timeframe) + ":" + $0.divisionLabel }
+            .joined(separator: " · ")
+    }
+
+    private func compactTF(_ tf: TimeFrame) -> String {
+        switch tf {
+        case .year:        return "YR"
+        case .moon:        return "MN"
+        case .quarterMoon: return "QM"
+        case .day:         return "DY"
+        case .hour:        return "HR"
+        case .minute:      return "MIN"
+        }
+    }
+
+    private func timeUntil(_ d: Date, from now: Date) -> String {
+        let s = d.timeIntervalSince(now)
+        return durationText(max(0, s))
+    }
+
+    private func durationText(_ s: TimeInterval) -> String {
+        if s < 60 { return String(format: "%.0fs", s) }
+        if s < 3600 {
+            return String(format: "%.0fm", floor(s / 60))
+        }
+        if s < 86400 {
+            let h = floor(s / 3600)
+            let m = floor(s.truncatingRemainder(dividingBy: 3600) / 60)
+            return String(format: "%.0fh%.0fm", h, m)
+        }
+        let d = floor(s / 86400)
+        let h = floor(s.truncatingRemainder(dividingBy: 86400) / 3600)
+        return String(format: "%.0fd%.0fh", d, h)
+    }
+
+    private func recompute(at date: Date) async {
+        await MainActor.run { loading = true }
+        let includeFundamentals = !fundamentalsOff
+        // iOS doesn't have per-widget settings, so the hour-exclusion
+        // default is hardcoded here to match the Mac default.
+        let excludeHourly = true
+        let upcoming = await Task.detached(priority: .userInitiated) {
+            ChordProjector.upcoming(
+                from: date,
+                lookahead: Self.lookahead,
+                includeFundamentals: includeFundamentals,
+                crossTimeframeOnly: true,
+                excludeHourly: excludeHourly,
+                patterns: ChordCatalog.chords,
+                maxResults: Self.maxResults
             )
+        }.value
+        let nowMatches = await Task.detached(priority: .userInitiated) {
+            ChordProjector.current(
+                at: date,
+                includeFundamentals: includeFundamentals,
+                excludeHourly: excludeHourly,
+                patterns: ChordCatalog.chords
+            )
+        }.value
+        await MainActor.run {
+            self.events = upcoming
+            self.current = nowMatches
+            self.anchorDate = date
+            self.loading = false
         }
-    }
-
-    private func pairAlignments(now: Date) -> [ConvergenceEvent] {
-        var out: [ConvergenceEvent] = []
-        for i in 0..<timeframes.count {
-            for j in (i + 1)..<timeframes.count {
-                let a = timeframes[i]
-                let b = timeframes[j]
-                if let seconds = secondsUntilAligned(a: a, b: b, now: now) {
-                    out.append(ConvergenceEvent(
-                        id: "align-\(a.rawValue)-\(b.rawValue)",
-                        label: "\(a.label) ↔ \(b.label)",
-                        secondsAway: seconds
-                    ))
-                }
-            }
-        }
-        return out
-    }
-
-    private func secondsUntilAligned(a: TimeFrame, b: TimeFrame, now: Date) -> TimeInterval? {
-        let rateA = 360.0 / a.cycleDuration
-        let rateB = 360.0 / b.cycleDuration
-        let relRate = rateA - rateB
-        guard abs(relRate) > 1e-12 else { return nil }
-
-        let degA = a.degree(at: now)
-        let degB = b.degree(at: now)
-        var diff = (degA - degB).truncatingRemainder(dividingBy: 360)
-        if diff < 0 { diff += 360 }
-        if diff < 1e-6 { return 360 / abs(relRate) }
-
-        let distance: Double = relRate > 0 ? (360 - diff) : diff
-        return distance / abs(relRate)
-    }
-
-    /// Recognized musical intervals, cents within one octave. Tolerance
-    /// is applied separately. Just-intonation values.
-    private static let chordIntervals: [(name: String, cents: Double)] = [
-        ("Octave",            0),
-        ("Perfect Fifth",     701.96),
-        ("Perfect Fourth",    498.04),
-        ("Major Third",       386.31),
-        ("Minor Third",       315.64),
-        ("Major Sixth",       884.36),
-        ("Minor Sixth",       813.69),
-        ("Harmonic Seventh",  968.83),
-    ]
-
-    /// Step forward 24 hours at 5-min intervals and report cross-timeframe
-    /// tone pairs that *newly* enter a chord state. Pairs already in chord
-    /// at t=now are excluded — otherwise the four permanent fundamental
-    /// pair relationships (e.g. Moon↔QtrMoon = 4:1 = octave, Day↔Hour =
-    /// 24:1 = perfect fifth across octaves) would dominate the list with
-    /// "0 sec" entries.
-    private func upcomingChords(now: Date) -> [ConvergenceEvent] {
-        let horizonHours: Double = 24
-        let stepMinutes: Double = 5
-        let toleranceCents: Double = 25
-        let steps = Int(horizonHours * 60 / stepMinutes)
-
-        // First pass: snapshot every chord currently in effect at t=now.
-        let initialTones = HarmonicAnalysis.activeTones(at: now, scales: [23])
-        var alreadyInChord: Set<String> = []
-        for i in 0..<initialTones.count {
-            for j in (i + 1)..<initialTones.count {
-                let a = initialTones[i]
-                let b = initialTones[j]
-                if a.timeframe == b.timeframe { continue }
-                for interval in Self.chordIntervals {
-                    let d = chordDistance(a: a, b: b, interval: interval)
-                    if d <= toleranceCents {
-                        alreadyInChord.insert("\(a.id)|\(b.id)|\(interval.name)")
-                    }
-                }
-            }
-        }
-
-        // Second pass: walk the next 24 hours and collect newly-forming chords.
-        var events: [ConvergenceEvent] = []
-        var seen: Set<String> = []
-
-        for step in 1..<steps {
-            let dt = Double(step) * stepMinutes * 60
-            let t = now.addingTimeInterval(dt)
-            let tones = HarmonicAnalysis.activeTones(at: t, scales: [23])
-            guard tones.count >= 2 else { continue }
-
-            for i in 0..<tones.count {
-                for j in (i + 1)..<tones.count {
-                    let a = tones[i]
-                    let b = tones[j]
-                    if a.timeframe == b.timeframe { continue }
-
-                    for interval in Self.chordIntervals {
-                        let distance = chordDistance(a: a, b: b, interval: interval)
-                        if distance > toleranceCents { continue }
-
-                        let key = "\(a.id)|\(b.id)|\(interval.name)"
-                        if alreadyInChord.contains(key) { continue }
-                        if seen.contains(key) { continue }
-                        seen.insert(key)
-
-                        events.append(ConvergenceEvent(
-                            id: key,
-                            label: "\(interval.name)",
-                            secondsAway: dt,
-                            detail: "\(toneLabel(a))  +  \(toneLabel(b))  ·  Δ\(Int(distance.rounded())) cents"
-                        ))
-                        break
-                    }
-                }
-            }
-        }
-
-        return events.sorted { $0.secondsAway < $1.secondsAway }.prefix(15).map { $0 }
-    }
-
-    private func chordDistance(a: HarmonicTone, b: HarmonicTone, interval: (name: String, cents: Double)) -> Double {
-        guard a.frequency > 0, b.frequency > 0 else { return .infinity }
-        let low = min(a.frequency, b.frequency)
-        let high = max(a.frequency, b.frequency)
-        let cents = 1200 * log2(high / low)
-        let octaveCents = cents.truncatingRemainder(dividingBy: 1200)
-        return min(
-            abs(octaveCents - interval.cents),
-            abs(octaveCents - interval.cents - 1200),
-            abs(octaveCents - interval.cents + 1200)
-        )
-    }
-
-    private func toneLabel(_ tone: HarmonicTone) -> String {
-        let tfName: String
-        switch tone.timeframe {
-        case .year: tfName = "YR"
-        case .moon: tfName = "MN"
-        case .quarterMoon: tfName = "QM"
-        case .day: tfName = "DY"
-        case .hour: tfName = "HR"
-        case .minute: tfName = "MIN"
-        }
-        return tone.isFundamental ? tfName : "\(tfName)×\(tone.divisions)"
-    }
-
-    private func formatDuration(_ seconds: TimeInterval) -> String {
-        if seconds.isInfinite || seconds.isNaN { return "—" }
-        let s = max(0, seconds)
-        let year: Double = 365.25 * 24 * 3600
-        let day: Double = 24 * 3600
-        let hour: Double = 3600
-
-        if s >= year { return String(format: "%.2f years", s / year) }
-        if s >= day  { return String(format: "%.2f days",  s / day) }
-        if s >= hour { return String(format: "%.2f hours", s / hour) }
-        if s >= 60   { return String(format: "%.1f min",   s / 60) }
-        return String(format: "%.0f sec", s)
     }
 }

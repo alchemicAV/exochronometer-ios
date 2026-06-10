@@ -35,7 +35,7 @@ struct TimeCircleView: View {
                     Circle()
                         .stroke(Color.white.opacity(0.55), lineWidth: 1)
 
-                    GeometryOverlayView(currentDegree: degree, lineWidth: 0.6)
+                    GeometryOverlayView(date: date, timeframe: timeFrame, lineWidth: 0.6)
 
                     GeometryReader { proxy in
                         let radius = min(proxy.size.width, proxy.size.height) / 2
@@ -167,11 +167,19 @@ struct TimeCircleView: View {
     }
 
     private static func cycleStartDate(for timeFrame: TimeFrame, now: Date) -> Date {
-        let cal = Calendar.current
+        // UTC: must match the indicator's anchor (TimeFrame.degree uses
+        // utcCalendar). The label DateFormatter is local-timezone by
+        // default, so the rendered string at the indicator's position
+        // is the local time of that UTC instant — exactly what the user
+        // sees on their wall clock when the indicator is there.
+        let cal = TimeFrame.utcCalendar
         switch timeFrame {
         case .year:
-            let year = cal.component(.year, from: now)
-            return cal.date(from: DateComponents(year: year, month: 1, day: 1)) ?? now
+            // Solstice-anchored: the year cycle starts at the December
+            // solstice boundary, not civil Jan 1 (matches TimeFrame.yearDegree).
+            let elapsed = now.timeIntervalSince(PhaseEpoch.decemberSolstice)
+            let completed = floor(elapsed / TimeFrame.tropicalYearSeconds)
+            return PhaseEpoch.decemberSolstice.addingTimeInterval(completed * TimeFrame.tropicalYearSeconds)
         case .day:
             return cal.startOfDay(for: now)
         case .hour:

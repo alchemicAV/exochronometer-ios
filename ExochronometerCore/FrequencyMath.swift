@@ -33,7 +33,7 @@ public enum FrequencyMath {
 
     /// Pretty-print a duration in seconds.
     public static func formatDuration(_ seconds: Double) -> String {
-        let year: Double = 365.25 * 24 * 60 * 60
+        let year: Double = TimeFrame.tropicalYearSeconds
         let day: Double = 24 * 60 * 60
         let hour: Double = 60 * 60
 

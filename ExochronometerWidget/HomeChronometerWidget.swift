@@ -36,7 +36,8 @@ struct HomeChronometerView: View {
                 .padding(6)
 
             GeometryOverlayView(
-                currentDegree: degree,
+                date: entry.date,
+                timeframe: frame,
                 lineWidth: 0.5,
                 fadeFraction: 0.04
             )

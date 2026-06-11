@@ -743,11 +743,24 @@ private struct AudioDriver: View {
     }
 }
 
+/// UTC timestamp for the journal note that mirrors each X post.
+/// (File-scope because `TriggerDriver` is generic and can't hold
+/// static stored properties.)
+private let xPostNoteStamp: DateFormatter = {
+    let f = DateFormatter()
+    f.dateFormat = "yyyy-MM-dd HH:mm:ss 'UTC'"
+    f.timeZone = TimeZone(identifier: "UTC")
+    return f
+}()
+
 /// Invisible 1Hz tick that runs the trigger engine. When rules fire, it
 /// builds the static canvas and routes through SnapshotEngine — unless
 /// dryRun is on, in which case it records the firing without writing.
+/// Every successful X post also writes a journal snapshot of the posted
+/// moment, so the journal is a durable index of everything published.
 private struct TriggerDriver<Canvas: View>: View {
     @ObservedObject var evaluator: TriggerEvaluator
+    @Environment(\.modelContext) private var modelContext
     let snapshotDate: Date?
     let canvasBuilder: (Date) -> Canvas
     let canvasBounds: CGSize
@@ -834,6 +847,14 @@ private struct TriggerDriver<Canvas: View>: View {
                         xPostState: xState,
                         captionHadURL: captionHadURL
                     )
+                    // Mirror every successful post into the journal: a
+                    // snapshot of the posted moment, noted with its
+                    // date/time, trigger, and tweet URL.
+                    if case .posted(let tweetURL) = xState {
+                        let note = "X post · \(trigger.displayName) · \(xPostNoteStamp.string(from: captureDate))"
+                            + "\n\(tweetURL.absoluteString)"
+                        SnapshotService.capture(at: captureDate, note: note, in: modelContext)
+                    }
                 }
             } else {
                 evaluator.recordFiring(

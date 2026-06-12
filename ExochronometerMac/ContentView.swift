@@ -775,10 +775,28 @@ private struct TriggerDriver<Canvas: View>: View {
                 // Frozen snapshot mode: no live triggers.
                 Color.clear
             } else {
-                SwiftUI.TimelineView(.periodic(from: .now, by: 1.0)) { ctx in
-                    Color.clear
-                        .onChange(of: ctx.date) { _, newDate in tick(at: newDate) }
-                }
+                // Plain async 1 Hz loop instead of a TimelineView: rendering-
+                // driven updates are throttled or paused by App Nap when the
+                // window is occluded or the display sleeps, which would
+                // silently stop trigger evaluation on an unattended machine.
+                // While the engine is armed we also hold a ProcessInfo
+                // activity assertion — .userInitiated opts out of App Nap,
+                // .idleSystemSleepDisabled keeps the Mac awake regardless of
+                // pmset/display settings. Released automatically when the
+                // driver leaves live mode or the window closes.
+                Color.clear
+                    .task {
+                        let activity = ProcessInfo.processInfo.beginActivity(
+                            options: [.userInitiated, .idleSystemSleepDisabled],
+                            reason: "Exochronometer trigger engine armed"
+                        )
+                        defer { ProcessInfo.processInfo.endActivity(activity) }
+                        while !Task.isCancelled {
+                            try? await Task.sleep(for: .seconds(1))
+                            if Task.isCancelled { break }
+                            tick(at: Date())
+                        }
+                    }
             }
         }
         .frame(width: 0, height: 0)

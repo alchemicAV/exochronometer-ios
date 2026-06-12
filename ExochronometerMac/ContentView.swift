@@ -47,44 +47,26 @@ struct ContentView: View {
         ZStack(alignment: .topLeading) {
             Color.black.ignoresSafeArea()
 
-            ScrollView([.horizontal, .vertical]) {
-                ZStack(alignment: .topLeading) {
-                    Color.clear
-                        .frame(width: canvasBounds.width, height: canvasBounds.height)
-                        .contentShape(Rectangle())
-                        .gesture(lassoGesture)
+            // Headless mode: the live canvas — and every TimelineView-
+            // driven Canvas redraw inside it — never enters the view
+            // hierarchy, so the appliance idles near zero CPU. Captures
+            // are unaffected: they render StaticCanvas offscreen from
+            // layout data when a trigger fires.
+            if state.mode == .headless {
+                HeadlessStatusView(evaluator: triggers)
+            } else {
+                liveCanvas
+                    .id(refreshKey)
 
-                    ForEach(layout.widgets) { widget in
-                        WidgetHost(widget: widget) {
-                            WidgetCatalog.view(
-                                for: widget.kind,
-                                snapshotDate: state.effectiveSnapshotDate,
-                                settings: widget.settings
-                            )
-                        }
-                    }
-
-                    if let start = lassoStart, let current = lassoCurrent {
-                        let rect = lassoFrame(start: start, end: current)
-                        Rectangle()
-                            .strokeBorder(Color.white.opacity(0.6), lineWidth: 1)
-                            .background(Rectangle().fill(Color.white.opacity(0.08)))
-                            .frame(width: rect.width, height: rect.height)
-                            .position(x: rect.midX, y: rect.midY)
-                            .allowsHitTesting(false)
-                    }
-                }
-                .padding(20)
+                // Invisible driver that pushes current tones to the audio
+                // engine. Zero-sized + hidden so it doesn't affect layout
+                // or hit testing.
+                AudioDriver(
+                    audio: audio,
+                    snapshotDate: state.effectiveSnapshotDate,
+                    fundamentalsOff: audioFundamentalsOff
+                )
             }
-            .id(refreshKey)
-
-            // Invisible driver that pushes current tones to the audio engine.
-            // Zero-sized + hidden so it doesn't affect layout or hit testing.
-            AudioDriver(
-                audio: audio,
-                snapshotDate: state.effectiveSnapshotDate,
-                fundamentalsOff: audioFundamentalsOff
-            )
 
             // Invisible driver that ticks the trigger evaluator at 1 Hz and
             // captures the canvas when rules fire. Lives at canvas level so
@@ -154,6 +136,38 @@ struct ContentView: View {
         }
     }
 
+    private var liveCanvas: some View {
+        ScrollView([.horizontal, .vertical]) {
+            ZStack(alignment: .topLeading) {
+                Color.clear
+                    .frame(width: canvasBounds.width, height: canvasBounds.height)
+                    .contentShape(Rectangle())
+                    .gesture(lassoGesture)
+
+                ForEach(layout.widgets) { widget in
+                    WidgetHost(widget: widget) {
+                        WidgetCatalog.view(
+                            for: widget.kind,
+                            snapshotDate: state.effectiveSnapshotDate,
+                            settings: widget.settings
+                        )
+                    }
+                }
+
+                if let start = lassoStart, let current = lassoCurrent {
+                    let rect = lassoFrame(start: start, end: current)
+                    Rectangle()
+                        .strokeBorder(Color.white.opacity(0.6), lineWidth: 1)
+                        .background(Rectangle().fill(Color.white.opacity(0.08)))
+                        .frame(width: rect.width, height: rect.height)
+                        .position(x: rect.midX, y: rect.midY)
+                        .allowsHitTesting(false)
+                }
+            }
+            .padding(20)
+        }
+    }
+
     private var canvasBounds: CGSize {
         let maxX = layout.widgets.map { $0.x + $0.width }.max() ?? 1200
         let maxY = layout.widgets.map { $0.y + $0.height }.max() ?? 800
@@ -208,9 +222,10 @@ struct ContentView: View {
             Text("Live").tag(ChronometerState.Mode.live)
             Text("Snapshot").tag(ChronometerState.Mode.snapshot)
             Text("Time Travel").tag(ChronometerState.Mode.timeTravel)
+            Text("Headless").tag(ChronometerState.Mode.headless)
         }
         .pickerStyle(.segmented)
-        .frame(width: 280)
+        .frame(width: 370)
     }
 
     @ViewBuilder
@@ -218,6 +233,11 @@ struct ContentView: View {
         switch state.mode {
         case .live:
             Text("LIVE")
+                .font(.system(size: 11, design: .monospaced))
+                .tracking(3)
+                .foregroundStyle(.white.opacity(0.4))
+        case .headless:
+            Text("HEADLESS · TRIGGERS ARMED")
                 .font(.system(size: 11, design: .monospaced))
                 .tracking(3)
                 .foregroundStyle(.white.opacity(0.4))
@@ -479,7 +499,7 @@ struct ContentView: View {
                 state.pendingSnapshotDate = Date()
             }
 
-        case .live, .timeTravel:
+        case .live, .timeTravel, .headless:
             // Remove the auto-added snapshot timeline if it was added on
             // entering snapshot mode, and reverse the displacement so
             // existing widgets return to their original positions.
@@ -752,6 +772,88 @@ private let xPostNoteStamp: DateFormatter = {
     f.timeZone = TimeZone(identifier: "UTC")
     return f
 }()
+
+/// Minimal status panel shown instead of the widget canvas in Headless
+/// mode. Everything here updates only when an @Published value changes —
+/// no TimelineViews, no Canvas — so the appliance idles near zero CPU
+/// while the trigger engine keeps ticking.
+private struct HeadlessStatusView: View {
+    @ObservedObject var evaluator: TriggerEvaluator
+    @ObservedObject private var xAuth = XAuthService.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("HEADLESS")
+                .font(.system(size: 14, design: .monospaced))
+                .tracking(4)
+                .foregroundStyle(.white.opacity(0.8))
+            Text("Rendering paused · trigger engine armed · captures render offscreen when rules fire")
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.45))
+
+            HStack(spacing: 14) {
+                statusChip("DRY RUN", on: evaluator.dryRun, onColor: .orange)
+                statusChip("POST TO X", on: evaluator.postToX, onColor: .green)
+                statusChip(xLabel, on: xSignedIn, onColor: .green)
+                statusChip("RULES \(evaluator.rules.filter(\.enabled).count)", on: true, onColor: .white)
+            }
+
+            Text("24H FIRINGS · \(evaluator.firingsLast24h)")
+                .font(.system(size: 10, design: .monospaced))
+                .tracking(2)
+                .foregroundStyle(.white.opacity(0.5))
+
+            VStack(alignment: .leading, spacing: 5) {
+                ForEach(evaluator.firingLog.prefix(8)) { record in
+                    HStack(spacing: 8) {
+                        Image(systemName: record.wroteToDisk ? "photo.fill" : "eye")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.white.opacity(0.4))
+                        Text(record.trigger.displayName)
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.7))
+                        Spacer()
+                        Text(record.date.formatted(date: .abbreviated, time: .shortened))
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.4))
+                    }
+                }
+                if evaluator.firingLog.isEmpty {
+                    Text("no firings yet")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.3))
+                }
+            }
+            .frame(maxWidth: 420, alignment: .leading)
+
+            Spacer()
+        }
+        .padding(40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private var xSignedIn: Bool {
+        if case .signedIn = xAuth.authState { return true }
+        return false
+    }
+
+    private var xLabel: String {
+        if case .signedIn(let user) = xAuth.authState { return "X @\(user)" }
+        return "X SIGNED OUT"
+    }
+
+    private func statusChip(_ label: String, on: Bool, onColor: Color) -> some View {
+        Text(label)
+            .font(.system(size: 9, design: .monospaced))
+            .tracking(1.5)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .foregroundStyle(on ? onColor : .white.opacity(0.3))
+            .overlay(
+                Capsule().stroke((on ? onColor : Color.white).opacity(0.35), lineWidth: 0.5)
+            )
+    }
+}
 
 /// Invisible 1Hz tick that runs the trigger engine. When rules fire, it
 /// builds the static canvas and routes through SnapshotEngine — unless

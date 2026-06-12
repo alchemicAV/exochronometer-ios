@@ -4,7 +4,7 @@ import ExochronometerCore
 
 @MainActor
 final class ChronometerState: ObservableObject {
-    enum Mode: String, Codable { case live, snapshot, timeTravel }
+    enum Mode: String, Codable { case live, snapshot, timeTravel, headless }
 
     private static let modeKey = "exo.mac.chronometer.mode"
     private static let selectedSnapshotIDKey = "exo.mac.chronometer.selectedSnapshotID"
@@ -54,6 +54,9 @@ final class ChronometerState: ObservableObject {
         case .live:        return nil
         case .snapshot:    return selectedSnapshotDate ?? pendingSnapshotDate
         case .timeTravel:  return timeTravelDate
+        // Headless is live time with rendering suppressed — triggers
+        // keep evaluating against "now".
+        case .headless:    return nil
         }
     }
 

@@ -1,5 +1,7 @@
+import AppKit
 import SwiftData
 import SwiftUI
+import UniformTypeIdentifiers
 import ExochronometerCore
 
 struct ContentView: View {
@@ -429,12 +431,63 @@ struct ContentView: View {
                     Label("Delete Preset", systemImage: "trash")
                 }
             }
+
+            Divider()
+            Button {
+                exportLayoutToFile()
+            } label: {
+                Label("Export Layout File…", systemImage: "square.and.arrow.up.on.square")
+            }
+            Button {
+                importLayoutFromFile()
+            } label: {
+                Label("Import Layout File…", systemImage: "square.and.arrow.down.on.square")
+            }
         } label: {
             Label("Layouts", systemImage: "rectangle.3.group")
         }
-        .help("Save / load layout presets")
+        .help("Save / load layout presets, or move the whole layout between machines as a JSON file")
         .sheet(isPresented: $showingSavePresetSheet) {
             savePresetSheet
+        }
+    }
+
+    /// Write the current canvas + all presets to a JSON file — the
+    /// machine-to-machine transfer path (UserDefaults doesn't travel).
+    private func exportLayoutToFile() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.canCreateDirectories = true
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd-HHmm"
+        panel.nameFieldStringValue = "exo-layout-\(formatter.string(from: Date())).json"
+        if panel.runModal() == .OK, let url = panel.url {
+            do {
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                encoder.dateEncodingStrategy = .iso8601
+                let data = try encoder.encode(layout.exportLayout())
+                try data.write(to: url)
+            } catch {
+                NSLog("Export layout failed: \(error)")
+            }
+        }
+    }
+
+    private func importLayoutFromFile() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        if panel.runModal() == .OK, let url = panel.url {
+            do {
+                let data = try Data(contentsOf: url)
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                let export = try decoder.decode(WidgetLayoutManager.LayoutExport.self, from: data)
+                layout.importLayout(export)
+            } catch {
+                NSLog("Import layout failed: \(error)")
+            }
         }
     }
 

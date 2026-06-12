@@ -450,6 +450,38 @@ final class WidgetLayoutManager: ObservableObject {
         savePresets()
     }
 
+    /// Versioned file payload for moving a layout between machines —
+    /// the current canvas plus every saved preset. Mirrors the trigger
+    /// profile export/import in TriggerSettingsView.
+    struct LayoutExport: Codable {
+        var version: Int = 1
+        var widgets: [WidgetInstance]
+        var presets: [LayoutPreset]
+    }
+
+    func exportLayout() -> LayoutExport {
+        LayoutExport(widgets: widgets, presets: presets)
+    }
+
+    /// Replace the live canvas with the imported one and merge presets
+    /// (imported presets win on name collision). Drops any in-flight
+    /// selection so we don't reference stale ids.
+    func importLayout(_ export: LayoutExport) {
+        selectedIDs = []
+        groupDragOffset = .zero
+        groupDragSourceID = nil
+        widgets = export.widgets
+        save()
+        for preset in export.presets {
+            if let idx = presets.firstIndex(where: { $0.name == preset.name }) {
+                presets[idx] = preset
+            } else {
+                presets.append(preset)
+            }
+        }
+        savePresets()
+    }
+
     func renamePreset(_ preset: LayoutPreset, to newName: String) {
         let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,

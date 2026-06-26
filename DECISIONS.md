@@ -75,6 +75,54 @@ project's history.
 - **Year-circle node labels fixed** (iOS + Mac): they still computed the
   cycle start from civil Jan 1 after the solstice re-anchor.
 
+## 2026-06-14 — Trigger clip rendering (design, not yet built)
+
+Goal: a 5–10 s video clip auto-captured at every trigger (chord onset
+first), showing the **whole canvas** — not just the on-screen viewport —
+and working in **headless** mode. Latency tolerance: 20–30 s after the
+fire; faster is better.
+
+- **Don't record — re-derive.** The canvas is a pure function of
+  `snapshotDate` (the snapshot path already renders any instant offscreen
+  via `StaticCanvas` + `captureBounds` + `exoCaptureMode`). So a trigger
+  clip needs no running recorder and no pre-roll ring buffer: on a fire at
+  `t`, render the window `[t−pre, t+post]` offscreen, frame by frame,
+  faster than real time. This is what makes "clip at *every* trigger"
+  cheap rather than expensive.
+- **Consequences, all for free:** whole canvas (it's the full
+  `captureBounds`, off-view widgets included); headless (no window needed);
+  **pre-roll is free** (the past is as renderable as the future — for a
+  chord onset you want the build-*up* into the chord, e.g. `[t−3s, t+7s]`);
+  faster-than-real-time render fits the latency budget with room to spare.
+- **The render can run *ahead* of the moment.** Trigger times are
+  themselves date math (geometry peaks, phase closures, chord onsets are
+  all predictable). So upcoming clips can be **pre-rendered before they
+  occur** — ready (or post-queued) at `t` with *zero* latency. The render
+  is not bound to wall-clock; it can lead it.
+- **Audio gets *easier*, not harder.** Amplitudes are also a pure function
+  of date (`HarmonicAnalysis.activeTones(at:)`). Render audio offline
+  through `AVAudioEngine`'s **manual rendering mode** (runs the real graph —
+  reverb, voicing — faster than real time), driven from `activeTones` on
+  the same date timeline as the video → **A/V sync by construction**.
+  Cheap fallback if deferred: silent clips.
+- **Costs to watch.** `ImageRenderer` per-frame (`@MainActor`, re-evaluates
+  the board each frame, ~50–200 ms/frame on a big board) is the bottleneck,
+  not storage — cap fps/scale for *auto* clips (15–24 fps, 1×) to stay
+  inside budget. Storage ≈ 0.5–2 MB per clip (line-art on black); add a
+  retention policy (keep last N / N days) + per-trigger bitrate caps;
+  cooldowns already throttle frequency.
+- **Determinism caveat.** Verify per widget that the offscreen render
+  reconstructs from the date window. The **spectrogram** is the one to
+  check — fine if its rolling history is computed from a date range (as the
+  still snapshot already does), broken if it accumulates live samples.
+- **Shape.** A `ClipRenderer(triggerDate, pre, post, fps, scale)` emitting
+  one `.mp4` as a trigger artifact alongside the existing `.png`, reusing
+  `captureBounds` / `StaticCanvas` / `exoCaptureMode` / the `AVAssetWriter`
+  settings. New code = frame loop + `AVAssetWriterInputPixelBufferAdaptor`
+  + the manual-render audio bridge. The existing ScreenCaptureKit recorder
+  stays as the "record my live screen (cursor, knob-twiddling)" path; this
+  is the "render any moment, whole board, headless" path.
+
 ---
 
 ## Corrections of record

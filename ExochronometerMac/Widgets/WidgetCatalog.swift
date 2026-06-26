@@ -26,6 +26,7 @@ struct WidgetCatalog {
         case .convergenceSelector: LiveConvergenceSelectorWidget(snapshotDate: snapshotDate, settings: settings)
         case .calibrationResult: LiveCalibrationResultWidget(snapshotDate: snapshotDate, settings: settings)
         case .snapshotTimeline:  SnapshotTimelineWidget()
+        case .synth:             SynthWidget()
         }
     }
 }

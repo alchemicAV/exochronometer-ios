@@ -23,6 +23,7 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable {
     case convergenceSelector
     case calibrationResult
     case snapshotTimeline
+    case synth
 
     var id: String { rawValue }
 
@@ -49,6 +50,7 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable {
         case .convergenceSelector: return "Convergence Square"
         case .calibrationResult: return "Calibration Result"
         case .snapshotTimeline:  return "Snapshot Timeline"
+        case .synth:             return "Harmonic Synth"
         }
     }
 
@@ -72,6 +74,7 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable {
         case .convergenceSelector: return CGSize(width: 460, height: 540)
         case .calibrationResult: return CGSize(width: 360, height: 480)
         case .snapshotTimeline: return CGSize(width: 800, height: 180)
+        case .synth:            return CGSize(width: 320, height: 620)
         }
     }
 
@@ -95,6 +98,7 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable {
         case .convergenceSelector: return CGSize(width: 320, height: 360)
         case .calibrationResult: return CGSize(width: 280, height: 320)
         case .snapshotTimeline: return CGSize(width: 360, height: 140)
+        case .synth:            return CGSize(width: 280, height: 300)
         }
     }
 

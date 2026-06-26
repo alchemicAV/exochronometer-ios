@@ -10,11 +10,14 @@ struct ContentView: View {
     @StateObject private var state = ChronometerState()
     @StateObject private var audio = HarmonicAudio(assignments: ContentView.audioAssignments)
     @StateObject private var triggers = TriggerEvaluator()
+    @StateObject private var recorder = CanvasRecorder()
+    @StateObject private var synthPresets = SynthPresetStore()
+    @AppStorage("exo.mac.recorder.quality") private var recorderQualityRaw = CanvasRecorder.Quality.small.rawValue
     @AppStorage("exo.mac.audio.volume") private var audioVolume: Double = 0.5
     @AppStorage("exo.mac.audio.fundamentalsOff") private var audioFundamentalsOff: Bool = true
+    @AppStorage("exo.mac.synth.v1") private var synthData = Data()
     @State private var showingSnapshotPopover = false
     @State private var showingSavePresetSheet = false
-    @State private var showingAudioPopover = false
     @State private var showingTriggersPopover = false
     @State private var showingTimeTravelPopover = false
     @State private var timeTravelTimeInput: String = ""
@@ -95,6 +98,11 @@ struct ContentView: View {
         .environmentObject(layout)
         .environmentObject(state)
         .environmentObject(audio)
+        // Live engine + preset store for canvas SynthWidgets. Capture renders
+        // deliberately omit these so the synth widget falls back to a
+        // read-only rack.
+        .harmonicAudio(audio)
+        .environment(\.synthPresetStore, synthPresets)
         .task {
             // v2 re-anchoring (solstice year, Metonic epoch) invalidated
             // degrees stored under earlier schemas; purge rather than
@@ -120,6 +128,7 @@ struct ContentView: View {
             }
             ToolbarItemGroup(placement: .primaryAction) {
                 audioControl
+                recordControl
                 captureButton
                 triggersButton
                 snapshotButton
@@ -132,6 +141,12 @@ struct ContentView: View {
         }
         .onAppear {
             audio.volume = audioVolume
+            recorder.audio = audio
+            // Restore the saved synth voicing so the sound is right even
+            // before a Harmonic Synth widget is on the canvas.
+            if let decoded = try? JSONDecoder().decode(SynthParams.self, from: synthData) {
+                audio.params = decoded
+            }
         }
         .onChange(of: audioVolume) { _, v in
             audio.volume = v
@@ -684,51 +699,58 @@ struct ContentView: View {
 
     private var audioControl: some View {
         Button {
-            showingAudioPopover.toggle()
+            if audio.isRunning { audio.stop() } else { audio.start() }
         } label: {
             Image(systemName: audio.isRunning ? "speaker.wave.2.fill" : "speaker.slash")
                 .foregroundStyle(audio.isRunning ? Color.accentColor : Color.primary)
         }
-        .help("Audio output")
-        .popover(isPresented: $showingAudioPopover, arrowEdge: .top) {
-            audioPopover
-        }
+        .help(audio.isRunning ? "Stop audio — full controls in the Harmonic Synth widget" : "Start audio — add a Harmonic Synth widget for full controls")
     }
 
-    private var audioPopover: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Audio Output")
-                    .font(.system(size: 12, weight: .medium))
-                Spacer()
-                Toggle("", isOn: Binding(
-                    get: { audio.isRunning },
-                    set: { newVal in
-                        if newVal { audio.start() } else { audio.stop() }
-                    }
-                ))
-                .labelsHidden()
+    private var recordControl: some View {
+        Menu {
+            Picker("Quality", selection: Binding(
+                get: { CanvasRecorder.Quality(rawValue: recorderQualityRaw) ?? .small },
+                set: { recorderQualityRaw = $0.rawValue; recorder.quality = $0 }
+            )) {
+                ForEach(CanvasRecorder.Quality.allCases) { q in
+                    Text(q.label).tag(q)
+                }
             }
-            Divider()
-            HStack(spacing: 8) {
-                Image(systemName: "speaker.fill")
-                    .foregroundStyle(.secondary)
-                Slider(value: $audioVolume, in: 0...1)
-                Image(systemName: "speaker.wave.3.fill")
-                    .foregroundStyle(.secondary)
+            .disabled(recorder.isRecording)
+
+            if let url = recorder.lastURL, !recorder.isRecording {
+                Divider()
+                Button("Reveal Last Recording") {
+                    NSWorkspace.shared.activateFileViewerSelecting([url])
+                }
             }
-            Toggle("Include fundamentals", isOn: Binding(
-                get: { !audioFundamentalsOff },
-                set: { audioFundamentalsOff = !$0 }
-            ))
-            .font(.system(size: 11))
-            Text("Sums sine oscillators for all active tones. Matches the spectrum widget's merged scaling.")
-                .font(.system(size: 10))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            if let msg = recorder.statusMessage {
+                Divider()
+                Text(msg)
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: recorder.isRecording ? "stop.circle.fill" : "record.circle")
+                    .foregroundStyle(recorder.isRecording ? Color.red : Color.primary)
+                if recorder.isRecording {
+                    Text(recordingTimeString(recorder.elapsed))
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.red)
+                }
+            }
+        } primaryAction: {
+            recorder.quality = CanvasRecorder.Quality(rawValue: recorderQualityRaw) ?? .small
+            recorder.toggle(window: NSApp.keyWindow ?? NSApp.mainWindow ?? NSApp.windows.first)
         }
-        .padding(16)
-        .frame(width: 280)
+        .help(recorder.isRecording
+            ? "Stop recording"
+            : "Record the canvas + audio to a compressed video")
+    }
+
+    private func recordingTimeString(_ t: TimeInterval) -> String {
+        let s = Int(t)
+        return String(format: "%d:%02d", s / 60, s % 60)
     }
 }
 

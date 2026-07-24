@@ -25,6 +25,8 @@ struct ContentView: View {
                         HarmonicAnalysisPage()
                     case .spatialAnalysis:
                         SpatialAnalysisPage()
+                    case .peakCalendar:
+                        PeakCalendarPage()
                     case .misc:
                         MiscPage()
                     }

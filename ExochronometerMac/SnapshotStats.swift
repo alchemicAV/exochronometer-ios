@@ -193,7 +193,7 @@ public struct SnapshotStats: Sendable {
     /// the harmonic state at that instant.
     public func formatCaption(trigger: SnapshotTrigger) -> String {
         var lines: [String] = []
-        lines.append("Trigger: \(trigger.displayName)")
+        lines.append("Trigger: \(triggerLabel(for: trigger))")
         lines.append("Tenney   \(tenneyMeterPercent)%   \(String(format: "%.2f", tenneyPerPair)) TH")
         lines.append("Entropy  \(entropyMeterPercent)%   \(String(format: "%.3f", entropyPerPair)) HE")
 
@@ -249,6 +249,41 @@ public struct SnapshotStats: Sendable {
             lines.append(line)
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// Human label for the trigger at this instant. Geometry-peak triggers
+    /// that land on a cardinal phase get the astronomical name instead of
+    /// the generic "… Geometry Peak": the year peak at 0°/180° is the
+    /// winter/summer solstice, the moon peak at new/full is named as such.
+    public func triggerLabel(for trigger: SnapshotTrigger) -> String {
+        switch trigger {
+        case .yearGeometryPeak:
+            let deg = TimeFrame.year.degree(at: date)
+            if nearAngle(deg, 0)   { return "Winter Solstice" }
+            if nearAngle(deg, 180) { return "Summer Solstice" }
+            return trigger.displayName
+        case .moonGeometryPeak:
+            if nearPhase(moonPhase, 0)   { return "New Moon" }
+            if nearPhase(moonPhase, 0.5) { return "Full Moon" }
+            return trigger.displayName
+        default:
+            return trigger.displayName
+        }
+    }
+
+    /// Within `tol`° of a target angle, shortest way around the circle. The
+    /// peak-opacity gate keeps a firing within ~3.4° of the exact node, so a
+    /// small tolerance cleanly separates 0°/180° from every neighbouring
+    /// Farey node (nearest is ~25° away).
+    private func nearAngle(_ a: Double, _ b: Double, tol: Double = 6) -> Bool {
+        FadeMath.circularDistance(a, b) <= tol
+    }
+
+    /// Within `tol` (cycle fraction) of a target moon phase, wrapping at 1.
+    private func nearPhase(_ p: Double, _ target: Double, tol: Double = 0.02) -> Bool {
+        var d = abs(p - target)
+        if d > 0.5 { d = 1 - d }
+        return d <= tol
     }
 
     /// Which timeframe(s) "own" each trigger kind. The filled dots in the

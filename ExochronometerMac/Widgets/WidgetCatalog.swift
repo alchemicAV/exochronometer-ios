@@ -27,6 +27,7 @@ struct WidgetCatalog {
         case .calibrationResult: LiveCalibrationResultWidget(snapshotDate: snapshotDate, settings: settings)
         case .snapshotTimeline:  SnapshotTimelineWidget()
         case .synth:             SynthWidget()
+        case .peakCalendar:      LivePeakCalendarWidget(snapshotDate: snapshotDate)
         }
     }
 }

@@ -1046,7 +1046,7 @@ private struct TriggerDriver<Canvas: View>: View {
                     // snapshot of the posted moment, noted with its
                     // date/time, trigger, and tweet URL.
                     if case .posted(let tweetURL) = xState {
-                        let note = "X post · \(trigger.displayName) · \(xPostNoteStamp.string(from: captureDate))"
+                        let note = "X post · \(stats.triggerLabel(for: trigger)) · \(xPostNoteStamp.string(from: captureDate))"
                             + "\n\(tweetURL.absoluteString)"
                         SnapshotService.capture(at: captureDate, note: note, in: modelContext)
                     }

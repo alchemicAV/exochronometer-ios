@@ -24,6 +24,7 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable {
     case calibrationResult
     case snapshotTimeline
     case synth
+    case peakCalendar
 
     var id: String { rawValue }
 
@@ -51,6 +52,7 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable {
         case .calibrationResult: return "Calibration Result"
         case .snapshotTimeline:  return "Snapshot Timeline"
         case .synth:             return "Harmonic Synth"
+        case .peakCalendar:      return "Peak Calendar"
         }
     }
 
@@ -75,6 +77,8 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable {
         case .calibrationResult: return CGSize(width: 360, height: 480)
         case .snapshotTimeline: return CGSize(width: 800, height: 180)
         case .synth:            return CGSize(width: 320, height: 620)
+        // 11 columns × 2 rows — the whole 22-month year, Initia top-left.
+        case .peakCalendar:     return CGSize(width: 2104, height: 424)
         }
     }
 
@@ -99,6 +103,8 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable {
         case .calibrationResult: return CGSize(width: 280, height: 320)
         case .snapshotTimeline: return CGSize(width: 360, height: 140)
         case .synth:            return CGSize(width: 280, height: 300)
+        // One month cell — the minimum shows just the current month.
+        case .peakCalendar:     return CGSize(width: 208, height: 232)
         }
     }
 

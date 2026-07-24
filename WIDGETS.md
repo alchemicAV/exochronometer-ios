@@ -69,8 +69,11 @@ their own names: **Initia** and **Meridia**. Each harmonic contributes
 φ(q) months, and 1 + Σφ(q) = 22.
 
 Shorthand is the root letter plus the suffix letter. Quint and Quart both
-claim Q, so they take their distinguishing vowel on the two numerators
-they share (1 and 3); `-oz` takes Z because O already belongs to `-one`.
+claim Q, so on the two numerators they share (1 and 3) they take their
+distinguishing consonant — qui**N**t / qua**R**t. N and R belong to
+neither the root alphabet (`H I M O Q S T`) nor the suffix alphabet
+(`A E I O U Y Z`), so a three-letter code always parses unambiguously as
+Q + family + peak. `-oz` takes Z because O already belongs to `-one`.
 
 | # | Month | SH | Opens | ° | Days |
 |---|-------|----|-------|---|------|
@@ -78,8 +81,8 @@ they share (1 and 3); `-oz` takes Z because O already belongs to `-one`.
 | 2 | Octone | OO | 1/8 | 45.0 | 6.5 |
 | 3 | Septone | SO | 1/7 | 51.4 | 8.7 |
 | 4 | Hexone | HO | 1/6 | 60.0 | 12.2 |
-| 5 | Quintone | QIO | 1/5 | 72.0 | 18.3 |
-| 6 | Quartone | QAO | 1/4 | 90.0 | 13.0 |
+| 5 | Quintone | QNO | 1/5 | 72.0 | 18.3 |
+| 6 | Quartone | QRO | 1/4 | 90.0 | 13.0 |
 | 7 | Septava | SA | 2/7 | 102.9 | 17.4 |
 | 8 | Tertone | TO | 1/3 | 120.0 | 15.2 |
 | 9 | Octis | OI | 3/8 | 135.0 | 9.1 |
@@ -87,11 +90,11 @@ they share (1 and 3); `-oz` takes Z because O already belongs to `-one`.
 | 11 | Septis | SI | 3/7 | 154.3 | 26.1 |
 | 12 | Meridia | ME | 1/2 | 180.0 | 26.1 |
 | 13 | Septyr | SY | 4/7 | 205.7 | 10.4 |
-| 14 | Quintis | QII | 3/5 | 216.0 | 9.1 |
+| 14 | Quintis | QNI | 3/5 | 216.0 | 9.1 |
 | 15 | Octune | OU | 5/8 | 225.0 | 15.2 |
 | 16 | Tertava | TA | 2/3 | 240.0 | 17.4 |
 | 17 | Septune | SU | 5/7 | 257.1 | 13.0 |
-| 18 | Quartis | QAI | 3/4 | 270.0 | 18.3 |
+| 18 | Quartis | QRI | 3/4 | 270.0 | 18.3 |
 | 19 | Quintyr | QY | 4/5 | 288.0 | 12.2 |
 | 20 | Hexune | HU | 5/6 | 300.0 | 8.7 |
 | 21 | Septem | SE | 6/7 | 308.6 | 6.5 |

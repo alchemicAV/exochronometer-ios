@@ -20,9 +20,11 @@ public struct PeakMonth: Identifiable, Sendable, Equatable {
     /// 1-based position in the year (1…22).
     public let number: Int
     public let name: String
-    /// Two/three-letter code. Root letter + suffix letter; the Quint/Quart
-    /// families share Q and disambiguate with their vowel only where their
-    /// numerators collide.
+    /// Two/three-letter code: root letter + suffix letter. Quint and Quart
+    /// both claim Q, so where their numerators collide (1 and 3) they take
+    /// their distinguishing consonant — quiNt / quaRt. N and R belong to
+    /// neither the root nor the suffix alphabet, so a three-letter code
+    /// always parses unambiguously as Q + family + peak.
     public let shorthand: String
     /// Opening peak as a reduced fraction of the circle, p/q.
     public let numerator: Int
@@ -193,11 +195,11 @@ public enum PeakCalendar {
         case 2: return "ME"
         case 4:
             // Quart's peaks (numerators 1, 3) both collide with a Quint
-            // peak, so it always carries the 'A' of quArt.
-            return "QA" + suffixLetter(p)
+            // peak, so it always carries the 'R' of quaRt.
+            return "QR" + suffixLetter(p)
         case 5:
             // Quint disambiguates only on the numerators Quart also has.
-            return (p == 1 || p == 3 ? "QI" : "Q") + suffixLetter(p)
+            return (p == 1 || p == 3 ? "QN" : "Q") + suffixLetter(p)
         default:
             return rootLetter(q) + suffixLetter(p)
         }

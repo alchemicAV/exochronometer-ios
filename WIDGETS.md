@@ -21,6 +21,97 @@ vertex, gone beyond ±10.8°. Star polygons traverse their n vertices over
 k rotations, so a heptagram {7/3} lights on one of every three passes of
 a given vertex. Journal notes appear as markers snapped to their phase.
 
+## Peak Calendar
+
+The year circle's geometry unrolled into a calendar. Every inscribed
+polygon reaches an absolute peak — amplitude 1.0 — as the indicator
+crosses one of its vertices, so the year's peak moments are the union of
+all vertex angles for n = 3…8:
+
+```
+{ p/q  reduced  :  q = 3…8,  0 ≤ p < q }   =   F₈
+```
+
+That union is exactly the **Farey sequence of order 8** — every fraction
+of the circle whose lowest-terms denominator is ≤ 8. It has 22 terms, so
+the year has 22 peaks and 22 gaps between them. The gaps are
+variable-length "months" summing to one mean tropical year:
+
+```
+length(i) = ( f(i+1) − f(i) ) · 365.24219 d      f = sorted F₈ terms
+```
+
+Because F₈ is symmetric about ½, the lengths are **palindromic**: month k
+and month 23−k are equal. The two longest (45.7 d) straddle the December
+solstice; the two shortest (6.5 d) sit just inside them; the tightest
+packing is around the June solstice. The equinoxes fall in the mirror
+pair 5 / 18.
+
+### Naming
+
+A peak p/q in lowest terms belongs to **harmonic q** — the simplest
+polygon with a vertex there (2/8 is really 1/4, a Quart peak, not an Oct
+one). Each month is `root(q) + suffix(p)`:
+
+| q | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|
+| **root** | Tert | Quart | Quint | Hex | Sept | Oct |
+
+| p | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|
+| **suffix** | ‑one | ‑ava | ‑is | ‑yr | ‑une | ‑em | ‑oz |
+
+The root names the harmonic and its interval at once (quart = fourth,
+quint = fifth, sept = seventh, oct = octave); the suffix is the vertex
+numerator, so mirror twins read as complements — Octone 1/8 ↔ Octoz 7/8,
+numerators summing to 8. The mirror's two fixed points, 0/1 and 1/2, get
+their own names: **Initia** and **Meridia**. Each harmonic contributes
+φ(q) months, and 1 + Σφ(q) = 22.
+
+Shorthand is the root letter plus the suffix letter. Quint and Quart both
+claim Q, so they take their distinguishing vowel on the two numerators
+they share (1 and 3); `-oz` takes Z because O already belongs to `-one`.
+
+| # | Month | SH | Opens | ° | Days |
+|---|-------|----|-------|---|------|
+| 1 | Initia | IN | 0/1 | 0.0 | 45.7 |
+| 2 | Octone | OO | 1/8 | 45.0 | 6.5 |
+| 3 | Septone | SO | 1/7 | 51.4 | 8.7 |
+| 4 | Hexone | HO | 1/6 | 60.0 | 12.2 |
+| 5 | Quintone | QIO | 1/5 | 72.0 | 18.3 |
+| 6 | Quartone | QAO | 1/4 | 90.0 | 13.0 |
+| 7 | Septava | SA | 2/7 | 102.9 | 17.4 |
+| 8 | Tertone | TO | 1/3 | 120.0 | 15.2 |
+| 9 | Octis | OI | 3/8 | 135.0 | 9.1 |
+| 10 | Quintava | QA | 2/5 | 144.0 | 10.4 |
+| 11 | Septis | SI | 3/7 | 154.3 | 26.1 |
+| 12 | Meridia | ME | 1/2 | 180.0 | 26.1 |
+| 13 | Septyr | SY | 4/7 | 205.7 | 10.4 |
+| 14 | Quintis | QII | 3/5 | 216.0 | 9.1 |
+| 15 | Octune | OU | 5/8 | 225.0 | 15.2 |
+| 16 | Tertava | TA | 2/3 | 240.0 | 17.4 |
+| 17 | Septune | SU | 5/7 | 257.1 | 13.0 |
+| 18 | Quartis | QAI | 3/4 | 270.0 | 18.3 |
+| 19 | Quintyr | QY | 4/5 | 288.0 | 12.2 |
+| 20 | Hexune | HU | 5/6 | 300.0 | 8.7 |
+| 21 | Septem | SE | 6/7 | 308.6 | 6.5 |
+| 22 | Octoz | OZ | 7/8 | 315.0 | 45.7 |
+
+Days are fractional, so a month draws `⌊length⌋ + 1` cells — the last one
+is a partial day. Position is read off the same solstice-anchored UTC
+year phase as every other timeframe, so the calendar and the year circle
+are one clock; month 1 day 1 is the December solstice.
+
+The iOS page shows all 22 months and opens focused on the current one
+with today lit. The macOS widget packs the same months in reading order
+with Initia pinned top-left, reflowing its column count to the tile's
+width — at roughly 11 × 2 it holds the whole year.
+
+The two cardinal peaks are astronomical events, and posted captions name
+them as such: the year peak at 0° / 180° reads Winter / Summer Solstice,
+and the moon's at new / full reads New Moon / Full Moon, instead of the
+generic geometry-peak label.
+
 ## Spectrum
 
 The current chord as a vertical log-frequency rack. Each sounding tone:

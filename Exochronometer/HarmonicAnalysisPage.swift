@@ -69,10 +69,12 @@ enum ScaleMode: String {
 struct HarmonicAnalysisPage: View {
     @StateObject private var audio = HarmonicAudio(assignments: ScaleMode.merged.assignments)
     @AppStorage("globalFundamentalsOff") private var fundamentalsOff: Bool = true
+    @AppStorage("exo.ios.synth.v1") private var synthData = Data()
     @State private var scaleMode: ScaleMode = .merged
     @State private var volume: Double = 0.5
     @State private var excludedTimeframes: Set<TimeFrame> = []
     @State private var useLogScale: Bool = true
+    @State private var showSynthOptions: Bool = false
 
     private let orderedTimeframes: [TimeFrame] = [.hour, .day, .quarterMoon, .moon, .year]
 
@@ -86,6 +88,14 @@ struct HarmonicAnalysisPage: View {
             volumeRow
                 .padding(.horizontal, 20)
 
+            // Synth options take the spectrum's place when toggled on; the
+            // composite waveform below stays put in both modes.
+            if showSynthOptions {
+                SynthOptionsView(params: $audio.params)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.horizontal, 16)
+            }
+
             SwiftUI.TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
                 let allActive = activeTones(at: context.date)
                 let active = allActive.filter { !excludedTimeframes.contains($0.timeframe) }
@@ -94,15 +104,17 @@ struct HarmonicAnalysisPage: View {
                     : active
 
                 VStack(spacing: 8) {
-                    VerticalSpectrum(
-                        tones: displayedTones,
-                        minFreqHz: scaleMode.minFreqHz,
-                        maxFreqHz: scaleMode.maxFreqHz,
-                        showScaleSuffix: scaleMode.isMerged,
-                        useLogScale: useLogScale
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.horizontal, 16)
+                    if !showSynthOptions {
+                        VerticalSpectrum(
+                            tones: displayedTones,
+                            minFreqHz: scaleMode.minFreqHz,
+                            maxFreqHz: scaleMode.maxFreqHz,
+                            showScaleSuffix: scaleMode.isMerged,
+                            useLogScale: useLogScale
+                        )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.horizontal, 16)
+                    }
 
                     OscilloscopeView(tones: displayedTones)
                         .frame(height: 90)
@@ -119,6 +131,15 @@ struct HarmonicAnalysisPage: View {
             }
         }
         .padding(.top, 8)
+        .onAppear {
+            // Restore the saved synth voicing before any audio plays.
+            if let decoded = try? JSONDecoder().decode(SynthParams.self, from: synthData) {
+                audio.params = decoded
+            }
+        }
+        .onChange(of: audio.params) { _, p in
+            if let data = try? JSONEncoder().encode(p) { synthData = data }
+        }
         .onDisappear {
             audio.stop()
         }
@@ -174,6 +195,13 @@ struct HarmonicAnalysisPage: View {
                 active: !useLogScale
             ) {
                 useLogScale.toggle()
+            }
+
+            toggleButton(
+                label: "SYNTH",
+                active: showSynthOptions
+            ) {
+                showSynthOptions.toggle()
             }
 
             Spacer()
@@ -633,5 +661,163 @@ private struct OscilloscopeView: View {
             }
         }
         ctx.stroke(wave, with: .color(.white.opacity(0.85)), lineWidth: 1)
+    }
+}
+
+/// Harmonic-synth voicing controls, shown in place of the spectrum graph
+/// when SYNTH is toggled on. Binds straight to the live engine's `params`
+/// (`HarmonicAudio` applies them on the audio thread), so edits are heard
+/// immediately and the composite-waveform scope below keeps updating.
+private struct SynthOptionsView: View {
+    @Binding var params: SynthParams
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                section("ENVELOPE") {
+                    slider("ATTACK", $params.attackMs, 0...1000) { "\(Int($0))ms" }
+                    slider("RELEASE", $params.releaseMs, 0...3000) { "\(Int($0))ms" }
+                }
+                section("TONE") {
+                    slider("LOW-PASS", $params.lowpassHz, 500...20000) { freqLabel($0) }
+                }
+                section("SPACE") {
+                    reverbRow
+                    slider("MIX", $params.reverbMix, 0...100) { "\(Int($0))%" }
+                }
+                section("MOVEMENT") {
+                    slider("TREMOLO", $params.tremoloRateHz, 0...4) { String(format: "%.2fHz", $0) }
+                    slider("DEPTH", $params.tremoloDepth, 0...1) { "\(Int($0 * 100))%" }
+                    slider("WIDTH", $params.width, 0...1) { "\(Int($0 * 100))%" }
+                }
+                timbreSection
+            }
+            .padding(.vertical, 4)
+        }
+    }
+
+    /// The information-trading knobs — detune/enrichment add or blur pitch
+    /// classes the chord didn't contain. Boxed + orange to flag the trade.
+    private var timbreSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("TIMBRE · ALTERS THE CHORD")
+                    .font(.system(size: 8, design: .monospaced))
+                    .tracking(2)
+                    .foregroundStyle(.orange.opacity(0.9))
+                Spacer()
+                Button {
+                    params.resetTimbre()
+                } label: {
+                    Text("RESET")
+                        .font(.system(size: 8, design: .monospaced))
+                        .tracking(1)
+                        .foregroundStyle(.orange)
+                }
+            }
+            stepper("UNISON", value: $params.unisonVoices, in: 1...3)
+            slider("DETUNE", $params.detuneCents, 0...25) { String(format: "%.1f¢", $0) }
+            slider("ENRICH", $params.enrichment, 0...1) { "\(Int($0 * 100))%" }
+            stepper("PARTIALS", value: $params.partials, in: 2...6)
+            slider("TILT", $params.partialTilt, 0.5...3) { String(format: "%.1f", $0) }
+        }
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.07)))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.orange.opacity(0.22), lineWidth: 0.5))
+    }
+
+    private var reverbRow: some View {
+        HStack(spacing: 10) {
+            rowLabel("REVERB")
+            Spacer()
+            Menu {
+                ForEach(0..<SynthParams.reverbPresetNames.count, id: \.self) { i in
+                    Button(SynthParams.reverbPresetNames[i]) { params.reverbPreset = i }
+                }
+            } label: {
+                Text(reverbName.uppercased())
+                    .font(.system(size: 9, design: .monospaced))
+                    .tracking(1)
+                    .foregroundStyle(.white.opacity(0.85))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .overlay(Capsule().stroke(.white.opacity(0.3), lineWidth: 0.5))
+            }
+        }
+    }
+
+    private var reverbName: String {
+        let i = min(max(params.reverbPreset, 0), SynthParams.reverbPresetNames.count - 1)
+        return SynthParams.reverbPresetNames[i]
+    }
+
+    // MARK: - Building blocks
+
+    @ViewBuilder
+    private func section<Content: View>(
+        _ title: String, @ViewBuilder _ content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text(title)
+                .font(.system(size: 8, design: .monospaced))
+                .tracking(2)
+                .foregroundStyle(.white.opacity(0.4))
+            content()
+        }
+    }
+
+    private func slider(
+        _ label: String,
+        _ value: Binding<Double>,
+        _ range: ClosedRange<Double>,
+        _ display: @escaping (Double) -> String
+    ) -> some View {
+        HStack(spacing: 10) {
+            rowLabel(label)
+            MiniSlider(value: value, range: range)
+            Text(display(value.wrappedValue))
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.7))
+                .frame(width: 52, alignment: .trailing)
+        }
+    }
+
+    private func stepper(_ label: String, value: Binding<Int>, in range: ClosedRange<Int>) -> some View {
+        HStack(spacing: 10) {
+            rowLabel(label)
+            Spacer()
+            stepButton("−") {
+                if value.wrappedValue > range.lowerBound { value.wrappedValue -= 1 }
+            }
+            Text("\(value.wrappedValue)")
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.85))
+                .frame(width: 22)
+            stepButton("+") {
+                if value.wrappedValue < range.upperBound { value.wrappedValue += 1 }
+            }
+        }
+    }
+
+    private func stepButton(_ glyph: String, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(glyph)
+                .font(.system(size: 13, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.8))
+                .frame(width: 28, height: 24)
+                .overlay(Capsule().stroke(.white.opacity(0.3), lineWidth: 0.5))
+        }
+    }
+
+    private func rowLabel(_ label: String) -> some View {
+        Text(label)
+            .font(.system(size: 9, design: .monospaced))
+            .tracking(1)
+            .foregroundStyle(.white.opacity(0.55))
+            .frame(width: 72, alignment: .leading)
+    }
+
+    private func freqLabel(_ hz: Double) -> String {
+        hz >= 1000 ? String(format: "%.1fk", hz / 1000) : "\(Int(hz))Hz"
     }
 }

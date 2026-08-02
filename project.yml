@@ -20,7 +20,7 @@ settings:
     # Pinned here (not in Xcode's UI) so `xcodegen generate` can't reset it to
     # none. A stable Apple Development identity also keeps the macOS Screen
     # Recording (TCC) grant from resetting on every rebuild.
-    DEVELOPMENT_TEAM: "5ABK8VQBLZ"
+    DEVELOPMENT_TEAM: "appi.jaycee@icloud.com"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     SWIFT_EMIT_LOC_STRINGS: YES
 

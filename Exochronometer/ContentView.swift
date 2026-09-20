@@ -23,8 +23,6 @@ struct ContentView: View {
                         GeometryHarmonicsPage()
                     case .harmonicAnalysis:
                         HarmonicAnalysisPage()
-                    case .spatialAnalysis:
-                        SpatialAnalysisPage()
                     case .peakCalendar:
                         PeakCalendarPage()
                     case .misc:

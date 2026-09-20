@@ -25,20 +25,20 @@ public struct SynthParams: Codable, Equatable, Sendable {
     // MARK: Tone — information-safe (global low-pass)
     /// Rolls off the piercing top end — the hour tone (2.3 kHz) and its
     /// partials up to ~18 kHz are what read as tinnitus. Removes energy only.
-    public var lowpassHz: Double = 7000
+    public var lowpassHz: Double = 2700
 
     // MARK: Space — information-safe (reverb)
     /// Wet/dry, 0…100. The single biggest "pad" move: smears existing tones
     /// in time, introduces no frequency.
-    public var reverbMix: Double = 38
+    public var reverbMix: Double = 80
     /// Index into `SynthParams.reverbPresetNames`.
-    public var reverbPreset: Int = 3
+    public var reverbPreset: Int = 4
 
     // MARK: Movement — information-safe
     /// Sub-audio amplitude LFO. Gentle "breathing"; its sidebands are sub-Hz
     /// and perceptually inaudible as pitch.
-    public var tremoloRateHz: Double = 0.18
-    public var tremoloDepth: Double = 0.12
+    public var tremoloRateHz: Double = 0
+    public var tremoloDepth: Double = 0
     /// Stereo spread of the unison voices, 0…1. With ≥2 voices at detune 0
     /// this is phase-decorrelated doubling — width with no new frequencies.
     public var width: Double = 0.35
@@ -48,14 +48,14 @@ public struct SynthParams: Codable, Equatable, Sendable {
     public var unisonVoices: Int = 2
     /// Cents spread across the unison voices. 0 = pure; >0 = chorus shimmer
     /// that blurs the exact intervals the meters read.
-    public var detuneCents: Double = 0
+    public var detuneCents: Double = 2.2
     /// Mix of added integer partials (k·f), 0…1. 0 = pure sine. Above 0 this
     /// fabricates frequencies that can coincide with real tones in the bank.
-    public var enrichment: Double = 0
+    public var enrichment: Double = 0.8
     /// Number of added partials above the fundamental, k = 2…(1+partials).
     public var partials: Int = 3
     /// Partial rolloff exponent: gain(k) = enrichment / k^tilt.
-    public var partialTilt: Double = 1.4
+    public var partialTilt: Double = 0
 
     public init() {}
 

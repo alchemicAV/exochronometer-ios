@@ -110,6 +110,17 @@ with today lit. The macOS widget packs the same months in reading order
 with Initia pinned top-left, reflowing its column count to the tile's
 width — at roughly 11 × 2 it holds the whole year.
 
+The iOS **home-screen widget** (2 × 2 / `systemSmall`) shows one month —
+whichever contains now. Elapsed days are filled, today is lit, and the
+face turns over to the next month by itself when the year phase crosses
+the peak. The day grid is 7 columns wide everywhere — page, board widget,
+home screen — so a month keeps one shape wherever you meet it; cells size
+to fit both axes and the block centers in the tile, which leaves a short
+month sitting in open space rather than restyling itself. Its timeline is
+the exact list of day boundaries — `start + k / 365.24219` of the year,
+capped by the next month's opening — rather than a polling interval, so
+it never drifts.
+
 The two cardinal peaks are astronomical events, and posted captions name
 them as such: the year peak at 0° / 180° reads Winter / Summer Solstice,
 and the moon's at new / full reads New Moon / Full Moon, instead of the

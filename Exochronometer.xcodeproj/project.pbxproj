@@ -27,6 +27,7 @@
 		2FABED19F09BCBEECEF39D88 /* TimeFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CE9E3E3435F27EF050E346F /* TimeFrame.swift */; };
 		3358DE7D302C8C6E81F27F8C /* Geometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A27B0CE5A2E4893F5C2C13D /* Geometry.swift */; };
 		347B652AAE13519A8EF39702 /* ExochronometerCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 24C681C5A1DB364A26A8826C /* ExochronometerCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		3620E40B463429F6060179CB /* exochronometer-process.html in Resources */ = {isa = PBXBuildFile; fileRef = 5060D70D5CEEECFFA2BB42A9 /* exochronometer-process.html */; };
 		38E3677E86AC712634E2798E /* CentsWheelWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 920585E100747F229038FB9B /* CentsWheelWidget.swift */; };
 		38ED69E2ABDC4C6F390801D5 /* JournalInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A5C82AFDED8D7CF03E9CC81 /* JournalInput.swift */; };
 		3B10DB388773F3178810FF16 /* ExochronometerMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F94449335B04CC467588059E /* ExochronometerMacApp.swift */; };
@@ -60,6 +61,7 @@
 		764BC855DCFF3857B299122A /* NoteSnap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 005FC6D2824D4226BA8377B6 /* NoteSnap.swift */; };
 		7EC3281525F15C91A4AE4C53 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4DBDA1102BA575A2D207E9B1 /* Assets.xcassets */; };
 		808D2B3376E6C66365994908 /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A720287325D707634545697 /* TimelineView.swift */; };
+		87626A0B0F0B30C17166231A /* HomePeakCalendarWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95420296D75366968151C8E4 /* HomePeakCalendarWidget.swift */; };
 		8AE9391777F5F85CF125F999 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FD989EB97182B92482035C74 /* Assets.xcassets */; };
 		9233F1F8AE88B3CCE3355D44 /* ExoSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FA75E9004398BE64A0DDD9 /* ExoSnapshot.swift */; };
 		96FA3467B26A21069E837CC9 /* PhasePortraitWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A5349466EE520024811E0BC /* PhasePortraitWidget.swift */; };
@@ -87,7 +89,6 @@
 		DAA23CDF20E5AE148722045E /* ColorMappingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72491ACE42D25B8A0FFDECD5 /* ColorMappingWidget.swift */; };
 		DD19881EF581F1F3BE024F44 /* XKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D70AE30887756B5438C9C68 /* XKeychain.swift */; };
 		DD2C9A1657C35E0CC3E5FCA6 /* DissonanceMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 263457D76393249421FE90A1 /* DissonanceMath.swift */; };
-		DEF5EED9852C13C2F44C9AA0 /* SpatialAnalysisPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63318CEEBF9F9A0DC032B564 /* SpatialAnalysisPage.swift */; };
 		E193214D444BD8FCF93D37EF /* HarmonicAnalysisPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25547A4EB0C824463271BF5A /* HarmonicAnalysisPage.swift */; };
 		E53B3347679C76D83C069A61 /* CumulativeDissonanceWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F75D2EC270C274A17E540BB /* CumulativeDissonanceWidget.swift */; };
 		E585A1D55534E771399932AF /* PeakCalendarPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = C33D6314729D4B73275EAA2D /* PeakCalendarPage.swift */; };
@@ -193,12 +194,12 @@
 		4DA4D91B94516A05DE05B6E9 /* PeakCalendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakCalendar.swift; sourceTree = "<group>"; };
 		4DB1CC4D49A8D529AC0C7D15 /* SynthPresetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SynthPresetStore.swift; sourceTree = "<group>"; };
 		4DBDA1102BA575A2D207E9B1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		5060D70D5CEEECFFA2BB42A9 /* exochronometer-process.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "exochronometer-process.html"; sourceTree = "<group>"; };
 		51E8E83E44304D2BFA8337CA /* CanvasRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasRecorder.swift; sourceTree = "<group>"; };
 		5A88A892CDAC1A7265495772 /* CalibrationResultWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalibrationResultWidget.swift; sourceTree = "<group>"; };
 		5B2F8868517C534A99280D18 /* ExochronometerWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ExochronometerWidget.entitlements; sourceTree = "<group>"; };
 		616BC9D332B5151191860748 /* ConvergenceWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvergenceWidget.swift; sourceTree = "<group>"; };
 		632208838013383EEF952E4F /* HomeChronometerWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeChronometerWidget.swift; sourceTree = "<group>"; };
-		63318CEEBF9F9A0DC032B564 /* SpatialAnalysisPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialAnalysisPage.swift; sourceTree = "<group>"; };
 		6889CFE5FE87D994BEE5729C /* TriggerCalibrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggerCalibrator.swift; sourceTree = "<group>"; };
 		6971DCB56E3037D5367F09E1 /* SynthParams.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SynthParams.swift; sourceTree = "<group>"; };
 		6A28DEDF0C7FA2063A35F06F /* PeakCalendarWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakCalendarWidget.swift; sourceTree = "<group>"; };
@@ -228,6 +229,7 @@
 		920585E100747F229038FB9B /* CentsWheelWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CentsWheelWidget.swift; sourceTree = "<group>"; };
 		925975E213F9F2691BB94EE4 /* MoonPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoonPhase.swift; sourceTree = "<group>"; };
 		9485B491CE5853A92B659A84 /* PeakMonthCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakMonthCell.swift; sourceTree = "<group>"; };
+		95420296D75366968151C8E4 /* HomePeakCalendarWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomePeakCalendarWidget.swift; sourceTree = "<group>"; };
 		96EAF8FB2DBAA015B04A6105 /* SnapshotPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotPopover.swift; sourceTree = "<group>"; };
 		97C6B22A02550F7166B74935 /* ChladniWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChladniWidget.swift; sourceTree = "<group>"; };
 		AF94C98400A1AE306F47F410 /* WidgetCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetCatalog.swift; sourceTree = "<group>"; };
@@ -295,9 +297,11 @@
 			isa = PBXGroup;
 			children = (
 				B4B09E4F65ECC76CFF0CCFBC /* ChronometerProvider.swift */,
+				5060D70D5CEEECFFA2BB42A9 /* exochronometer-process.html */,
 				5B2F8868517C534A99280D18 /* ExochronometerWidget.entitlements */,
 				CD3D520F0D9F61A3B0C41EF4 /* ExochronometerWidgetBundle.swift */,
 				632208838013383EEF952E4F /* HomeChronometerWidget.swift */,
+				95420296D75366968151C8E4 /* HomePeakCalendarWidget.swift */,
 				DEE12FFD03B29E25A9425616 /* Info.plist */,
 				D35038796D3AA259A648885D /* RefreshIntent.swift */,
 				B24D3AA7174A3C6B07A91483 /* TimeframeIntent.swift */,
@@ -418,7 +422,6 @@
 				7E30346EBCF6CDF822B58009 /* NoteIndicator.swift */,
 				474ED08E792879D3FEF75D78 /* NotePanel.swift */,
 				C33D6314729D4B73275EAA2D /* PeakCalendarPage.swift */,
-				63318CEEBF9F9A0DC032B564 /* SpatialAnalysisPage.swift */,
 				8D79A0121D1CFD1726F35628 /* TimeCircleView.swift */,
 				2A720287325D707634545697 /* TimelineView.swift */,
 			);
@@ -516,6 +519,7 @@
 			buildConfigurationList = E10692F67610B84C22D3B53D /* Build configuration list for PBXNativeTarget "ExochronometerWidget" */;
 			buildPhases = (
 				B5102D30B6FCD01D1A7583E3 /* Sources */,
+				F62C077277B1659045B1C5DA /* Resources */,
 				6BE0350B29E8C049ECD6AB41 /* Frameworks */,
 			);
 			buildRules = (
@@ -592,6 +596,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F62C077277B1659045B1C5DA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3620E40B463429F6060179CB /* exochronometer-process.html in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -656,7 +668,6 @@
 				121DB5109D606AD07B4D9F5F /* NoteIndicator.swift in Sources */,
 				262478DC11BF5C86CB376BDA /* NotePanel.swift in Sources */,
 				E585A1D55534E771399932AF /* PeakCalendarPage.swift in Sources */,
-				DEF5EED9852C13C2F44C9AA0 /* SpatialAnalysisPage.swift in Sources */,
 				A631D3AED47B434EF0867634 /* TimeCircleView.swift in Sources */,
 				808D2B3376E6C66365994908 /* TimelineView.swift in Sources */,
 			);
@@ -669,6 +680,7 @@
 				A904F1D09509383C3EC03944 /* ChronometerProvider.swift in Sources */,
 				2B82077D9C09C69D6734672D /* ExochronometerWidgetBundle.swift in Sources */,
 				EF2BCA1A7DBAACDE4AB44E6A /* HomeChronometerWidget.swift in Sources */,
+				87626A0B0F0B30C17166231A /* HomePeakCalendarWidget.swift in Sources */,
 				24C439D120FE9C8A946F42F0 /* RefreshIntent.swift in Sources */,
 				170D06A43A62E0E387FB9782 /* TimeframeIntent.swift in Sources */,
 			);

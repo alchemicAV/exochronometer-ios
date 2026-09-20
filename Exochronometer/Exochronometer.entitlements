@@ -2,10 +2,17 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!--
+    App group removed: unused by any code, and unavailable on free
+    provisioning — see ExochronometerWidget.entitlements. Restore both
+    copies together if a shared container is ever needed.
+
     <key>com.apple.security.application-groups</key>
     <array>
         <string>group.com.alchemicav.exochronometer</string>
     </array>
+    -->
+
     <!--
     CloudKit / iCloud disabled pending paid Apple Developer Program.
     Uncomment when ready to re-enable cross-device snapshot sync.

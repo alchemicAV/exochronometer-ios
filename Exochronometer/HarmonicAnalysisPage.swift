@@ -719,7 +719,7 @@ private struct SynthOptionsView: View {
             slider("DETUNE", $params.detuneCents, 0...25) { String(format: "%.1f¢", $0) }
             slider("ENRICH", $params.enrichment, 0...1) { "\(Int($0 * 100))%" }
             stepper("PARTIALS", value: $params.partials, in: 2...6)
-            slider("TILT", $params.partialTilt, 0.5...3) { String(format: "%.1f", $0) }
+            slider("TILT", $params.partialTilt, 0...3) { String(format: "%.1f", $0) }
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.07)))

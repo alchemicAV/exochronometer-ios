@@ -79,6 +79,29 @@ public enum PeakCalendar {
         return Position(monthIndex: index, dayOfMonth: day, fractionThroughMonth: through)
     }
 
+    /// The next instant at which ``position(at:)`` reports a different
+    /// day — either the day rolling over inside the month, or the month
+    /// itself opening (which resets the count to day 1).
+    ///
+    /// The year phase is linear in absolute time, so a target fraction
+    /// converts back to a date by simple proportion; no search needed.
+    /// Widgets use this to schedule a timeline entry per day rather than
+    /// polling on a fixed clock interval.
+    public static func nextDayBoundary(after date: Date) -> Date {
+        let frac = yearFraction(at: date)
+        let pos = position(at: date)
+        let start = openingFraction(months[pos.monthIndex])
+        // Days are counted from the month's opening, so the boundaries are
+        // start + k/yearDays — capped by the next month's opening, whichever
+        // comes first (the last day of a month is a partial one).
+        let nextDay = start + Double(pos.dayOfMonth) / TimeFrame.tropicalYearDays
+        let monthEnd = pos.monthIndex + 1 < months.count
+            ? openingFraction(months[pos.monthIndex + 1])
+            : 1.0
+        let target = min(nextDay, monthEnd)
+        return date.addingTimeInterval((target - frac) * TimeFrame.tropicalYearSeconds)
+    }
+
     // MARK: - Derivation
 
     private static func yearFraction(at date: Date) -> Double {

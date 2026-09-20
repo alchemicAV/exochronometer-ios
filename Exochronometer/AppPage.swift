@@ -3,11 +3,10 @@ import Foundation
 enum AppPage: String, CaseIterable, Identifiable {
     case circles
     case timeline
-    case geometryHarmonics
     case harmonicAnalysis
-    case spatialAnalysis
     case peakCalendar
     case misc
+    case geometryHarmonics
 
     var id: String { rawValue }
 
@@ -17,9 +16,8 @@ enum AppPage: String, CaseIterable, Identifiable {
         case .timeline:          return "Timeline"
         case .geometryHarmonics: return "Geometry Harmonics"
         case .harmonicAnalysis:  return "Harmonic Analysis"
-        case .spatialAnalysis:   return "Spatial Analysis"
         case .peakCalendar:      return "Peak Calendar"
-        case .misc:              return "Misc"
+        case .misc:              return "Misc Analysis"
         }
     }
 }

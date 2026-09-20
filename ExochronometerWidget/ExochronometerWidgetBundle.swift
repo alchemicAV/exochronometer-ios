@@ -5,5 +5,6 @@ import WidgetKit
 struct ExochronometerWidgetBundle: WidgetBundle {
     var body: some Widget {
         HomeChronometerWidget()
+        HomePeakCalendarWidget()
     }
 }

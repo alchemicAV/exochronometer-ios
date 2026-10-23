@@ -63,10 +63,21 @@ final class DelvetownAPIClient {
             "mimeType": mime,
             "size": size
         ]
+        // Image entry with alt text + pixel aspect ratio. Live delve.town
+        // image posts all carry aspectRatio; some validators require it.
+        var imageEntry: [String: Any] = ["image": image, "alt": ""]
+        if let dims = Self.imageDimensions(payload) {
+            imageEntry["aspectRatio"] = ["width": dims.width, "height": dims.height]
+        }
         return [
             "$type": Self.embedImagesType,
-            "images": [["image": image, "alt": ""]]
+            "images": [imageEntry]
         ]
+    }
+
+    private static func imageDimensions(_ data: Data) -> (width: Int, height: Int)? {
+        guard let rep = NSBitmapImageRep(data: data) else { return nil }
+        return (rep.pixelsWide, rep.pixelsHigh)
     }
 
     private func uploadBlob(_ data: Data, mimeType: String) async throws -> [String: Any] {

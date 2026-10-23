@@ -22,6 +22,7 @@ struct ExochronometerMacApp: App {
                     // modal prompts don't block UI setup.
                     await Task.detached(priority: .utility) {
                         XKeychain.preload()
+                        DelvetownKeychain.preload()
                     }.value
                 }
         }

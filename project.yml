@@ -20,7 +20,15 @@ settings:
     # Pinned here (not in Xcode's UI) so `xcodegen generate` can't reset it to
     # none. A stable Apple Development identity also keeps the macOS Screen
     # Recording (TCC) grant from resetting on every rebuild.
-    DEVELOPMENT_TEAM: "appi.jaycee@icloud.com"
+    #
+    # NOTE: this must be a numeric Team ID, not an Apple ID email — xcodegen
+    # writes the literal string, and an email fails signing ("no certificate
+    # matching team ID <email>"). 5ABK8VQBLZ is the personal (free) team for
+    # `appi.jaycee@icloud.com` — the only one with a valid Apple Development
+    # cert on this machine, and the one the README's "no paid Developer
+    # Program" flow uses. (A paid team `922R668536` also exists in Xcode but
+    # has no cert; switch this if you ever create one.)
+    DEVELOPMENT_TEAM: "5ABK8VQBLZ"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     SWIFT_EMIT_LOC_STRINGS: YES
 

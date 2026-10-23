@@ -111,6 +111,18 @@ public final class TriggerEvaluator: ObservableObject {
             }
         }
     }
+    /// When true, the trigger driver also crossposts to delve.town via
+    /// `DelvetownAPIClient.shared.post` in addition to writing PNG+caption to
+    /// disk. Requires a successful Delvetown sign-in (see Configure Delvetown
+    /// sheet). Independent of `postToX` — both can be on at once. Defaults to
+    /// off so live posts don't fire until the user explicitly opts in.
+    @Published public var postToDelvetown: Bool = false {
+        didSet {
+            if isPersisting {
+                UserDefaults.standard.set(postToDelvetown, forKey: Self.postToDelvetownKey)
+            }
+        }
+    }
     /// When false, instance is transient — used by the calibrator to run
     /// simulations without overwriting the user's persisted rule config.
     private let isPersisting: Bool
@@ -162,6 +174,7 @@ public final class TriggerEvaluator: ObservableObject {
     private static let windowKey = "exo.mac.triggers.priorityWindowMin"
     private static let pairKey = "exo.mac.triggers.pairMeterCooldowns"
     private static let postToXKey = "exo.mac.triggers.postToX"
+    private static let postToDelvetownKey = "exo.mac.triggers.postToDelvetown"
     private static let migrationKey = "exo.mac.triggers.migration.v1"
     /// Once an extreme has retreated by this fraction of its apex offset
     /// from the entry threshold, fire the "peak" capture.
@@ -194,6 +207,7 @@ public final class TriggerEvaluator: ObservableObject {
         }
         self.pairMeterCooldowns = UserDefaults.standard.object(forKey: Self.pairKey) as? Bool ?? false
         self.postToX = UserDefaults.standard.object(forKey: Self.postToXKey) as? Bool ?? false
+        self.postToDelvetown = UserDefaults.standard.object(forKey: Self.postToDelvetownKey) as? Bool ?? false
     }
 
     /// Transient init for calibration / simulation. Doesn't touch
@@ -562,6 +576,7 @@ public final class TriggerEvaluator: ObservableObject {
         public let imageURL: URL?
         public let wroteToDisk: Bool
         public let xPostState: XPostState
+        public let delvetownPostState: DelvetownPostState
         public let captionHadURL: Bool
 
         public init(
@@ -570,6 +585,7 @@ public final class TriggerEvaluator: ObservableObject {
             imageURL: URL?,
             wroteToDisk: Bool,
             xPostState: XPostState = .notAttempted,
+            delvetownPostState: DelvetownPostState = .notAttempted,
             captionHadURL: Bool = false
         ) {
             self.trigger = trigger
@@ -577,6 +593,7 @@ public final class TriggerEvaluator: ObservableObject {
             self.imageURL = imageURL
             self.wroteToDisk = wroteToDisk
             self.xPostState = xPostState
+            self.delvetownPostState = delvetownPostState
             self.captionHadURL = captionHadURL
         }
     }
@@ -588,12 +605,19 @@ public final class TriggerEvaluator: ObservableObject {
         case failed(message: String)
     }
 
+    public enum DelvetownPostState: Equatable {
+        case notAttempted
+        case posted(postURL: URL)
+        case failed(message: String)
+    }
+
     public func recordFiring(
         _ trigger: SnapshotTrigger,
         at date: Date,
         imageURL: URL?,
         wroteToDisk: Bool,
         xPostState: XPostState = .notAttempted,
+        delvetownPostState: DelvetownPostState = .notAttempted,
         captionHadURL: Bool = false
     ) {
         let record = FiringRecord(
@@ -602,6 +626,7 @@ public final class TriggerEvaluator: ObservableObject {
             imageURL: imageURL,
             wroteToDisk: wroteToDisk,
             xPostState: xPostState,
+            delvetownPostState: delvetownPostState,
             captionHadURL: captionHadURL
         )
         firingLog.insert(record, at: 0)

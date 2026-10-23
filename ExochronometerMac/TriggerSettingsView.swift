@@ -16,6 +16,8 @@ struct TriggerSettingsView: View {
     @State private var pinLabel: String = ""
     @State private var showingXConfigure: Bool = false
     @ObservedObject private var xAuth = XAuthService.shared
+    @State private var showingDelvetownConfigure: Bool = false
+    @ObservedObject private var delvetownAuth = DelvetownAuthService.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -61,6 +63,19 @@ struct TriggerSettingsView: View {
                 .sheet(isPresented: $showingXConfigure) {
                     XConfigureView()
                 }
+                Button {
+                    showingDelvetownConfigure = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: delvetownConnectedIcon)
+                        Text(delvetownConnectedLabel)
+                    }
+                }
+                .controlSize(.small)
+                .help("Configure Delvetown (ATProto app password). Sign in, test post, manage credentials.")
+                .sheet(isPresented: $showingDelvetownConfigure) {
+                    DelvetownConfigureView()
+                }
             }
             HStack(spacing: 14) {
                 Toggle("Dry run", isOn: $evaluator.dryRun)
@@ -72,6 +87,11 @@ struct TriggerSettingsView: View {
                     .controlSize(.mini)
                     .help("When on, each trigger fire (a) writes PNG+TXT to ~/Pictures/Exochronometer, AND (b) posts a tweet via X API.")
                     .disabled(!(isXSignedIn))
+                Toggle("Post to Delvetown", isOn: $evaluator.postToDelvetown)
+                    .toggleStyle(.switch)
+                    .controlSize(.mini)
+                    .help("When on, each trigger fire crossposts to delve.town via ATProto. Independent of Post to X.")
+                    .disabled(!(isDelvetownSignedIn))
                 Spacer()
             }
             HStack(spacing: 6) {
@@ -92,6 +112,11 @@ struct TriggerSettingsView: View {
 
     private var isXSignedIn: Bool {
         if case .signedIn = xAuth.authState { return true }
+        return false
+    }
+
+    private var isDelvetownSignedIn: Bool {
+        if case .signedIn = delvetownAuth.authState { return true }
         return false
     }
 
@@ -147,6 +172,24 @@ struct TriggerSettingsView: View {
         case .authorizing:     return "X · signing in"
         case .error:           return "X · error"
         case .signedOut:       return "Configure X"
+        }
+    }
+
+    private var delvetownConnectedIcon: String {
+        switch delvetownAuth.authState {
+        case .signedIn:    return "checkmark.circle.fill"
+        case .authorizing: return "person.crop.circle.badge.clock"
+        case .error:       return "exclamationmark.triangle.fill"
+        case .signedOut:   return "person.crop.circle.badge.xmark"
+        }
+    }
+
+    private var delvetownConnectedLabel: String {
+        switch delvetownAuth.authState {
+        case .signedIn(let h): return "Delvetown · @\(h)"
+        case .authorizing:     return "Delvetown · signing in"
+        case .error:           return "Delvetown · error"
+        case .signedOut:       return "Configure Delvetown"
         }
     }
 
@@ -569,6 +612,7 @@ struct TriggerSettingsView: View {
                 .font(.system(size: 9))
                 .foregroundStyle(record.wroteToDisk ? Color.accentColor : Color.secondary)
             xStatusIcon(record: record)
+            delvetownStatusIcon(record: record)
             if record.captionHadURL {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 8))
@@ -607,6 +651,26 @@ struct TriggerSettingsView: View {
                 .font(.system(size: 9))
                 .foregroundStyle(.red)
                 .help("Post failed: \(msg)")
+        }
+    }
+
+    @ViewBuilder
+    private func delvetownStatusIcon(record: TriggerEvaluator.FiringRecord) -> some View {
+        switch record.delvetownPostState {
+        case .notAttempted:
+            EmptyView()
+        case .posted(let url):
+            Link(destination: url) {
+                Image(systemName: "checkmark.message.fill")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.green)
+            }
+            .help("Posted to Delvetown — click to open")
+        case .failed(let msg):
+            Image(systemName: "xmark.message.fill")
+                .font(.system(size: 9))
+                .foregroundStyle(.red)
+                .help("Delvetown post failed: \(msg)")
         }
     }
 

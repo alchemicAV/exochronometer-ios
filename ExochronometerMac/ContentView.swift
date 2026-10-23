@@ -855,6 +855,7 @@ private let xPostNoteStamp: DateFormatter = {
 private struct HeadlessStatusView: View {
     @ObservedObject var evaluator: TriggerEvaluator
     @ObservedObject private var xAuth = XAuthService.shared
+    @ObservedObject private var delvetownAuth = DelvetownAuthService.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -870,6 +871,8 @@ private struct HeadlessStatusView: View {
                 statusChip("DRY RUN", on: evaluator.dryRun, onColor: .orange)
                 statusChip("POST TO X", on: evaluator.postToX, onColor: .green)
                 statusChip(xLabel, on: xSignedIn, onColor: .green)
+                statusChip("POST TO DELVETOWN", on: evaluator.postToDelvetown, onColor: .green)
+                statusChip(delvetownLabel, on: delvetownSignedIn, onColor: .green)
                 statusChip("RULES \(evaluator.rules.filter(\.enabled).count)", on: true, onColor: .white)
             }
 
@@ -915,6 +918,16 @@ private struct HeadlessStatusView: View {
     private var xLabel: String {
         if case .signedIn(let user) = xAuth.authState { return "X @\(user)" }
         return "X SIGNED OUT"
+    }
+
+    private var delvetownSignedIn: Bool {
+        if case .signedIn = delvetownAuth.authState { return true }
+        return false
+    }
+
+    private var delvetownLabel: String {
+        if case .signedIn(let handle) = delvetownAuth.authState { return "DT @\(handle)" }
+        return "DELVETOWN SIGNED OUT"
     }
 
     private func statusChip(_ label: String, on: Bool, onColor: Color) -> some View {
@@ -1026,28 +1039,47 @@ private struct TriggerDriver<Canvas: View>: View {
                 trigger: trigger,
                 stats: stats
             )
-            // Disk write succeeded; now attempt X post if enabled.
-            if evaluator.postToX {
+            // Disk write succeeded; now attempt social posts if enabled.
+            let shouldPostX = evaluator.postToX
+            let shouldPostDelvetown = evaluator.postToDelvetown
+            if shouldPostX || shouldPostDelvetown {
                 Task { @MainActor in
-                    let xState = await Self.postToX(
-                        imageURL: artifact.imageURL,
-                        caption: caption,
-                        chordDetail: chordDetail
-                    )
+                    var xState: TriggerEvaluator.XPostState = .notAttempted
+                    var dtState: TriggerEvaluator.DelvetownPostState = .notAttempted
+                    if shouldPostX {
+                        xState = await Self.postToX(
+                            imageURL: artifact.imageURL,
+                            caption: caption,
+                            chordDetail: chordDetail
+                        )
+                    }
+                    if shouldPostDelvetown {
+                        dtState = await Self.postToDelvetown(
+                            imageURL: artifact.imageURL,
+                            caption: caption,
+                            chordDetail: chordDetail
+                        )
+                    }
                     evaluator.recordFiring(
                         trigger,
                         at: captureDate,
                         imageURL: artifact.imageURL,
                         wroteToDisk: true,
                         xPostState: xState,
+                        delvetownPostState: dtState,
                         captionHadURL: captionHadURL
                     )
                     // Mirror every successful post into the journal: a
                     // snapshot of the posted moment, noted with its
-                    // date/time, trigger, and tweet URL.
+                    // date/time, trigger, and post URL.
                     if case .posted(let tweetURL) = xState {
                         let note = "X post · \(stats.triggerLabel(for: trigger)) · \(xPostNoteStamp.string(from: captureDate))"
                             + "\n\(tweetURL.absoluteString)"
+                        SnapshotService.capture(at: captureDate, note: note, in: modelContext)
+                    }
+                    if case .posted(let postURL) = dtState {
+                        let note = "Delvetown post · \(stats.triggerLabel(for: trigger)) · \(xPostNoteStamp.string(from: captureDate))"
+                            + "\n\(postURL.absoluteString)"
                         SnapshotService.capture(at: captureDate, note: note, in: modelContext)
                     }
                 }
@@ -1113,6 +1145,42 @@ private struct TriggerDriver<Canvas: View>: View {
             return .posted(tweetURL: result.tweetURL)
         } catch let XError.http(message) where message.contains("rate") || message.contains("429") {
             return .rateLimited(retryAfter: nil)
+        } catch {
+            return .failed(message: error.localizedDescription)
+        }
+    }
+
+    /// Read the PNG, upload it to delve.town, create the post record.
+    /// Returns the resulting `DelvetownPostState` for the firing log.
+    @MainActor
+    private static func postToDelvetown(
+        imageURL: URL,
+        caption: String,
+        chordDetail: String?
+    ) async -> TriggerEvaluator.DelvetownPostState {
+        guard case .signedIn = DelvetownAuthService.shared.authState else {
+            return .failed(message: "Not signed in to Delvetown")
+        }
+        guard let png = try? Data(contentsOf: imageURL) else {
+            return .failed(message: "Could not read PNG at \(imageURL.lastPathComponent)")
+        }
+        do {
+            let result = try await DelvetownAPIClient.shared.post(text: caption, imagePNG: png)
+            // Threaded chord-detail reply (text-only). Best-effort: the main
+            // post + image already succeeded, so a failed reply must not flip
+            // the firing to failed — just log it.
+            if let chordDetail, !chordDetail.isEmpty {
+                do {
+                    _ = try await DelvetownAPIClient.shared.post(
+                        text: chordDetail,
+                        imagePNG: nil,
+                        replyTo: result
+                    )
+                } catch {
+                    print("[Delvetown] chord-detail reply failed: \(error.localizedDescription)")
+                }
+            }
+            return .posted(postURL: result.postURL)
         } catch {
             return .failed(message: error.localizedDescription)
         }

@@ -88,9 +88,12 @@ public enum ChordDetector {
         return bestPerSignature.values.sorted { $0.fitCents < $1.fitCents }
     }
 
-    /// Match a specific tone subset against a specific pattern.
-    /// Treats the lowest-frequency tone (in pitch-class) as the root and
-    /// computes intervals from it to each higher tone.
+    /// Match a specific tone subset against a specific pattern, resolving
+    /// the chord's true tonic (root). Every tone is tried as the candidate
+    /// root and the one whose remaining tones best match the pattern's JI
+    /// interval set (tightest total cents error) is chosen — so an inverted
+    /// chord reports its real root rather than its lowest (bass) tone, and
+    /// symmetric pitch sets (e.g. D-sus2 vs A-sus4) are broken by fit.
     public static func match(
         _ tones: [HarmonicTone],
         pattern: ChordPattern,
@@ -98,28 +101,35 @@ public enum ChordDetector {
     ) -> ChordMatch? {
         guard tones.count == pattern.toneCount else { return nil }
         let sorted = tones.sorted { $0.frequency < $1.frequency }
-        let root = sorted[0].frequency
-        let rootNote = JustIntonation.closestNote(frequency: root)
+        // Non-root intervals of the pattern (intervals[0] == 0 is the tonic).
+        let patternIntervals = pattern.intervals.dropFirst().map(octaveReduce).sorted()
 
-        let actualIntervals: [Double] = sorted.map { tone in
-            tone.frequency == root ? 0 : 1200 * log2(tone.frequency / root)
+        var bestRoot: HarmonicTone?
+        var bestError: Double = .infinity
+        for candidate in sorted {
+            let intervals = sorted
+                .filter { $0.id != candidate.id }
+                .map { octaveReduce(1200 * log2($0.frequency / candidate.frequency)) }
+                .sorted()
+            var totalError: Double = 0
+            var valid = true
+            for i in 0..<patternIntervals.count {
+                let dist = circularCentsDistance(intervals[i], patternIntervals[i])
+                if dist > tolerance { valid = false; break }
+                totalError += dist
+            }
+            if valid && totalError < bestError {
+                bestError = totalError
+                bestRoot = candidate
+            }
         }
-        // Sort both interval lists so we don't depend on input ordering.
-        let actualSorted = actualIntervals.sorted()
-        let patternSorted = pattern.intervals.sorted()
+        guard let root = bestRoot else { return nil }
 
-        var totalError: Double = 0
-        for i in 0..<patternSorted.count {
-            let actual = octaveReduce(actualSorted[i])
-            let expected = octaveReduce(patternSorted[i])
-            let dist = circularCentsDistance(actual, expected)
-            if dist > tolerance { return nil }
-            totalError += dist
-        }
+        let rootNote = JustIntonation.closestNote(frequency: root.frequency)
         return ChordMatch(
             pattern: pattern,
             tones: sorted,
-            fitCents: totalError,
+            fitCents: bestError,
             rootNote: rootNote.noteName,
             rootCentsDelta: rootNote.centsDelta
         )

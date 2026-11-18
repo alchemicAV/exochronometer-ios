@@ -1223,7 +1223,7 @@ private struct TriggerDriver<Canvas: View>: View {
             let result = try await ClockTowerAPIClient.shared.post(
                 text: caption,
                 imagePNG: png,
-                alt: "Picture dashboard of the Exochronometer - data in the post."
+                alt: "Picture dashboard of the Exochronometer - JI A=432Hz - data in the post."
             )
             return .posted(postURL: result.postURL)
         } catch {

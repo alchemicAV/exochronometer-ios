@@ -143,8 +143,6 @@ public enum ChordProjector {
                         continue
                     }
                     if let open = openEvents.removeValue(forKey: key) {
-                        let rootFreq = cand.inner.tones.map(\.frequency).min() ?? 0
-                        let root = JustIntonation.closestNote(frequency: rootFreq)
                         events.append(ChordEvent(
                             pattern: cand.inner.pattern,
                             toneSignature: cand.inner.tones.map {
@@ -155,8 +153,8 @@ public enum ChordProjector {
                             endTime: open.endTime,
                             fitCents: cand.inner.fitCents,
                             peakAmplitudeProduct: open.peakAmplitudeProduct,
-                            rootNote: root.noteName,
-                            rootCentsDelta: root.centsDelta
+                            rootNote: cand.inner.rootNote,
+                            rootCentsDelta: cand.inner.rootCentsDelta
                         ))
                     }
                 }
@@ -261,7 +259,9 @@ public enum ChordProjector {
                     found.append(CandidateChord(
                         pattern: pattern,
                         tones: match.tones,
-                        fitCents: match.fitCents
+                        fitCents: match.fitCents,
+                        rootNote: match.rootNote,
+                        rootCentsDelta: match.rootCentsDelta
                     ))
                 }
             }
@@ -274,6 +274,8 @@ public enum ChordProjector {
         public let pattern: ChordPattern
         public let tones: [HarmonicTone]
         public let fitCents: Double
+        public let rootNote: String
+        public let rootCentsDelta: Double
     }
 
     private static func makeUniverse(

@@ -123,6 +123,18 @@ public final class TriggerEvaluator: ObservableObject {
             }
         }
     }
+    /// When true, the day-circle crossover trigger crossposts to the
+    /// SEPARATE clock-tower delve.town account (see Configure Clock Tower
+    /// sheet) in addition to writing PNG+caption to disk. The crossover is
+    /// isolated from both `postToX` and `postToDelvetown` — it posts only to
+    /// the clock-tower account, never to Octavia's or X. Defaults to off.
+    @Published public var postToClockTower: Bool = false {
+        didSet {
+            if isPersisting {
+                UserDefaults.standard.set(postToClockTower, forKey: Self.postToClockTowerKey)
+            }
+        }
+    }
     /// When false, instance is transient — used by the calibrator to run
     /// simulations without overwriting the user's persisted rule config.
     private let isPersisting: Bool
@@ -175,6 +187,7 @@ public final class TriggerEvaluator: ObservableObject {
     private static let pairKey = "exo.mac.triggers.pairMeterCooldowns"
     private static let postToXKey = "exo.mac.triggers.postToX"
     private static let postToDelvetownKey = "exo.mac.triggers.postToDelvetown"
+    private static let postToClockTowerKey = "exo.mac.triggers.postToClockTower"
     private static let migrationKey = "exo.mac.triggers.migration.v1"
     /// Once an extreme has retreated by this fraction of its apex offset
     /// from the entry threshold, fire the "peak" capture.
@@ -208,6 +221,7 @@ public final class TriggerEvaluator: ObservableObject {
         self.pairMeterCooldowns = UserDefaults.standard.object(forKey: Self.pairKey) as? Bool ?? false
         self.postToX = UserDefaults.standard.object(forKey: Self.postToXKey) as? Bool ?? false
         self.postToDelvetown = UserDefaults.standard.object(forKey: Self.postToDelvetownKey) as? Bool ?? false
+        self.postToClockTower = UserDefaults.standard.object(forKey: Self.postToClockTowerKey) as? Bool ?? false
     }
 
     /// Transient init for calibration / simulation. Doesn't touch
@@ -385,6 +399,11 @@ public final class TriggerEvaluator: ObservableObject {
             return current.yearPeakingShapes.subtracting(previousYearPeaking).isEmpty ? nil : current.date
         case .moonGeometryPeak:
             return current.moonPeakingShapes.subtracting(previousMoonPeaking).isEmpty ? nil : current.date
+        case .dayGeometryCrossover:
+            guard let previous = previousStats else { return nil }
+            let priorIdx = PeakCalendar.monthIndex(forFraction: TimeFrame.day.degree(at: previous.date) / 360.0)
+            let currIdx = PeakCalendar.monthIndex(forFraction: TimeFrame.day.degree(at: current.date) / 360.0)
+            return priorIdx != currIdx ? current.date : nil
         case .dayBoundary:
             return crossedCalendarBoundary(current: current, component: .day) ? current.date : nil
         case .halfDayBoundary:
@@ -577,6 +596,7 @@ public final class TriggerEvaluator: ObservableObject {
         public let wroteToDisk: Bool
         public let xPostState: XPostState
         public let delvetownPostState: DelvetownPostState
+        public let clockTowerPostState: DelvetownPostState
         public let captionHadURL: Bool
 
         public init(
@@ -586,6 +606,7 @@ public final class TriggerEvaluator: ObservableObject {
             wroteToDisk: Bool,
             xPostState: XPostState = .notAttempted,
             delvetownPostState: DelvetownPostState = .notAttempted,
+            clockTowerPostState: DelvetownPostState = .notAttempted,
             captionHadURL: Bool = false
         ) {
             self.trigger = trigger
@@ -594,6 +615,7 @@ public final class TriggerEvaluator: ObservableObject {
             self.wroteToDisk = wroteToDisk
             self.xPostState = xPostState
             self.delvetownPostState = delvetownPostState
+            self.clockTowerPostState = clockTowerPostState
             self.captionHadURL = captionHadURL
         }
     }
@@ -618,6 +640,7 @@ public final class TriggerEvaluator: ObservableObject {
         wroteToDisk: Bool,
         xPostState: XPostState = .notAttempted,
         delvetownPostState: DelvetownPostState = .notAttempted,
+        clockTowerPostState: DelvetownPostState = .notAttempted,
         captionHadURL: Bool = false
     ) {
         let record = FiringRecord(
@@ -627,6 +650,7 @@ public final class TriggerEvaluator: ObservableObject {
             wroteToDisk: wroteToDisk,
             xPostState: xPostState,
             delvetownPostState: delvetownPostState,
+            clockTowerPostState: clockTowerPostState,
             captionHadURL: captionHadURL
         )
         firingLog.insert(record, at: 0)

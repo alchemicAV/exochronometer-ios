@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		01C8C31FA655097999D65379 /* ClockTowerKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88D46AD40E17FFE8CFAEDFF3 /* ClockTowerKeychain.swift */; };
 		0267CE3F52A3F10635EBC515 /* SynthParams.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6971DCB56E3037D5367F09E1 /* SynthParams.swift */; };
 		04C23EFF9AF16AAC8CB84469 /* OscilloscopeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8778D1FF56B2F6BA5977CA /* OscilloscopeWidget.swift */; };
 		0AD09F75E847991E2D95EEE0 /* PeakCalendar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DA4D91B94516A05DE05B6E9 /* PeakCalendar.swift */; };
@@ -52,6 +53,7 @@
 		58C970BC10400C7BF9C1090F /* AppHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FACE187C278EEB0974813B2 /* AppHeader.swift */; };
 		5B2039204683DE6E01FEDEDC /* TriggerEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0F9D6B35E571699E6E5703B /* TriggerEvaluator.swift */; };
 		5B4C528BC6F11378ED813A1B /* XAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5C35C7C42864AE7D3492AA3 /* XAuthService.swift */; };
+		5BC78EE18917BD03DF89C21D /* ClockTowerAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D8A088CB6D9836F8B3919D6 /* ClockTowerAuthService.swift */; };
 		5DF5758A3292DD2169B1A7AA /* HarmonicAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852E7C525E0CE0D94B46ABDD /* HarmonicAnalysis.swift */; };
 		60E9324D3140A66310EE810B /* WidgetSettingsPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 838F63EB2FC5878DFC4C34C3 /* WidgetSettingsPopover.swift */; };
 		625E4515D61D101B4D9DC1C2 /* HarmonicColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C777E142C1F8956B5F8B606 /* HarmonicColor.swift */; };
@@ -87,8 +89,10 @@
 		C26E8A63156A07706F7766C3 /* ConvergenceSelectorWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07203BA96DF1215812BF18BC /* ConvergenceSelectorWidget.swift */; };
 		C77BB263E5EA5A822EC3A38F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 914F7682F275CB251B7B2674 /* ContentView.swift */; };
 		C8C7DA69BF75FCEA71F14402 /* SnapshotTimelineWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = D241EBAB168D23357C5DE4FA /* SnapshotTimelineWidget.swift */; };
+		CE92C113B440BFC3C25CC962 /* ClockTowerConfigureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D9A614EB286931346211FBA /* ClockTowerConfigureView.swift */; };
 		D5C2712D2C564A9E85E86583 /* XConfigureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71A96EDAAFBA0E0BA1D7255B /* XConfigureView.swift */; };
 		D701F6A5AF712BAB0569121C /* ExochronometerWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 81DC3ECB6E081274EFCE6722 /* ExochronometerWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D988ED264A12DB8F3DBAEFBC /* ClockTowerAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E45B37A520CE353413B808C /* ClockTowerAPIClient.swift */; };
 		DAA23CDF20E5AE148722045E /* ColorMappingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72491ACE42D25B8A0FFDECD5 /* ColorMappingWidget.swift */; };
 		DD19881EF581F1F3BE024F44 /* XKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D70AE30887756B5438C9C68 /* XKeychain.swift */; };
 		DD2C9A1657C35E0CC3E5FCA6 /* DissonanceMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 263457D76393249421FE90A1 /* DissonanceMath.swift */; };
@@ -181,6 +185,8 @@
 		0F75D2EC270C274A17E540BB /* CumulativeDissonanceWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CumulativeDissonanceWidget.swift; sourceTree = "<group>"; };
 		19FA75E9004398BE64A0DDD9 /* ExoSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExoSnapshot.swift; sourceTree = "<group>"; };
 		1D7019FE7CB85C0ACD260DC1 /* SynthWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SynthWidget.swift; sourceTree = "<group>"; };
+		1D9A614EB286931346211FBA /* ClockTowerConfigureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClockTowerConfigureView.swift; sourceTree = "<group>"; };
+		1E45B37A520CE353413B808C /* ClockTowerAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClockTowerAPIClient.swift; sourceTree = "<group>"; };
 		1FACE187C278EEB0974813B2 /* AppHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHeader.swift; sourceTree = "<group>"; };
 		23F597C5D3DB1F7191E25910 /* ChordDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChordDetector.swift; sourceTree = "<group>"; };
 		24C681C5A1DB364A26A8826C /* ExochronometerCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ExochronometerCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -228,8 +234,10 @@
 		85C15944A97104AD26BFFBFC /* FrequencyMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrequencyMath.swift; sourceTree = "<group>"; };
 		871C2F56E05269B4457495C1 /* ExochronometerMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ExochronometerMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8813206ABB85F87133A18F07 /* DissonanceGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DissonanceGraph.swift; sourceTree = "<group>"; };
+		88D46AD40E17FFE8CFAEDFF3 /* ClockTowerKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClockTowerKeychain.swift; sourceTree = "<group>"; };
 		88F0A78D82045FA8F7A12C43 /* JustIntonation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JustIntonation.swift; sourceTree = "<group>"; };
 		8D79A0121D1CFD1726F35628 /* TimeCircleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeCircleView.swift; sourceTree = "<group>"; };
+		8D8A088CB6D9836F8B3919D6 /* ClockTowerAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClockTowerAuthService.swift; sourceTree = "<group>"; };
 		8EBADADCD5B048AEC391902F /* Exochronometer.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Exochronometer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		911CCC7412D67CF71E41B863 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		914F7682F275CB251B7B2674 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -320,6 +328,10 @@
 		2B9AF1A7AA6B00125D78529D /* Delvetown */ = {
 			isa = PBXGroup;
 			children = (
+				1E45B37A520CE353413B808C /* ClockTowerAPIClient.swift */,
+				8D8A088CB6D9836F8B3919D6 /* ClockTowerAuthService.swift */,
+				1D9A614EB286931346211FBA /* ClockTowerConfigureView.swift */,
+				88D46AD40E17FFE8CFAEDFF3 /* ClockTowerKeychain.swift */,
 				584312A3FBEC6F93735D6F11 /* DelvetownAPIClient.swift */,
 				5F7AF613FF04DEBCAF7C11FC /* DelvetownAuthService.swift */,
 				A0CC5090516EF02B0D9BC468 /* DelvetownConfigureView.swift */,
@@ -641,6 +653,10 @@
 				38E3677E86AC712634E2798E /* CentsWheelWidget.swift in Sources */,
 				B9054B67747CC38CD5049C63 /* ChladniWidget.swift in Sources */,
 				9ACDE147D9EF7A1B9D90F0D6 /* ChronometerState.swift in Sources */,
+				D988ED264A12DB8F3DBAEFBC /* ClockTowerAPIClient.swift in Sources */,
+				5BC78EE18917BD03DF89C21D /* ClockTowerAuthService.swift in Sources */,
+				CE92C113B440BFC3C25CC962 /* ClockTowerConfigureView.swift in Sources */,
+				01C8C31FA655097999D65379 /* ClockTowerKeychain.swift in Sources */,
 				DAA23CDF20E5AE148722045E /* ColorMappingWidget.swift in Sources */,
 				C77BB263E5EA5A822EC3A38F /* ContentView.swift in Sources */,
 				C26E8A63156A07706F7766C3 /* ConvergenceSelectorWidget.swift in Sources */,

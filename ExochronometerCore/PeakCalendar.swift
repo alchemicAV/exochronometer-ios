@@ -79,6 +79,32 @@ public enum PeakCalendar {
         return Position(monthIndex: index, dayOfMonth: day, fractionThroughMonth: through)
     }
 
+    /// Which of the 22 Farey segments a circle fraction [0,1) falls into.
+    /// The day (and hour/minute) circles share the year's Farey_8 geometry,
+    /// so the same 22 segments apply on every circle — only the anchor
+    /// (what "0°" means) differs, and that is resolved upstream into
+    /// `fraction`. A fraction of exactly 1.0 (or 0.0) lands in the first
+    /// segment.
+    public static func monthIndex(forFraction fraction: Double) -> Int {
+        var f = fraction.truncatingRemainder(dividingBy: 1)
+        if f < 0 { f += 1 }
+        var index = 0
+        for i in months.indices {
+            if openingFraction(months[i]) <= f { index = i } else { break }
+        }
+        return index
+    }
+
+    /// Day-circle segment name: `"Dia"` + the peak-calendar month name
+    /// whose opening vertex matches the current day segment. The day circle
+    /// is the same Farey_8 geometry as the year, so the segment opening at
+    /// 315° (7/8, the `Octoz` peak) is `DiaOctoz`; the two mirror points are
+    /// `DiaInitia` (0°) and `DiaMeridia` (180°).
+    public static func diaSegmentName(at date: Date) -> String {
+        let frac = TimeFrame.day.degree(at: date) / 360.0
+        return "Dia" + months[monthIndex(forFraction: frac)].name
+    }
+
     /// The next instant at which ``position(at:)`` reports a different
     /// day — either the day rolling over inside the month, or the month
     /// itself opening (which resets the count to day 1).

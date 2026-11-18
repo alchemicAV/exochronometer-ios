@@ -192,6 +192,11 @@ public struct SnapshotStats: Sendable {
     /// triggered the snapshot; the meter readings + chord list give
     /// the harmonic state at that instant.
     public func formatCaption(trigger: SnapshotTrigger) -> String {
+        // The day-circle crossover fires a distinct "clock tower" caption —
+        // wall-clock time, Gregorian + exochronometer dates, day angle and
+        // Dia-named segment, and the active geometry — instead of the
+        // meter-heavy snapshot caption.
+        if trigger == .dayGeometryCrossover { return formatClockTowerCaption() }
         var lines: [String] = []
         lines.append("Trigger: \(triggerLabel(for: trigger))")
         lines.append("Tenney   \(tenneyMeterPercent)%   \(String(format: "%.2f", tenneyPerPair)) TH")
@@ -251,6 +256,38 @@ public struct SnapshotStats: Sendable {
         return lines.joined(separator: "\n")
     }
 
+    /// Clock-tower caption for the day-circle crossover. Reports the
+    /// wall-clock time and Gregorian date (both UTC, matching the rest of
+    /// the system), the exochronometer date (peak-calendar month + day),
+    /// the day-circle angle + `Dia`-named segment, and the geometry active
+    /// on the day circle at the crossing.
+    public func formatClockTowerCaption() -> String {
+        var lines: [String] = []
+
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm:ss"
+        timeFormatter.timeZone = TimeZone(identifier: "UTC")
+        lines.append("Current Time:    \(timeFormatter.string(from: date)) UTC")
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.timeZone = TimeZone(identifier: "UTC")
+        lines.append("Gregorian Date:  \(dateFormatter.string(from: date))")
+
+        let pos = PeakCalendar.position(at: date)
+        let month = PeakCalendar.months[pos.monthIndex]
+        lines.append("Exo Date:        \(month.name) · Day \(pos.dayOfMonth)")
+
+        let deg = TimeFrame.day.degree(at: date)
+        let seg = PeakCalendar.diaSegmentName(at: date)
+        lines.append(String(format: "Day Circle:      %.1f° · %@", deg, seg))
+
+        let geo = dayPeakingShapes.sorted().joined(separator: " · ")
+        lines.append("Active Geometry: \(geo.isEmpty ? "—" : geo)")
+
+        return lines.joined(separator: "\n")
+    }
+
     /// Human label for the trigger at this instant. Geometry-peak triggers
     /// that land on a cardinal phase get the astronomical name instead of
     /// the generic "… Geometry Peak": the year peak at 0°/180° is the
@@ -299,6 +336,8 @@ public struct SnapshotStats: Sendable {
         case .moonGeometryPeak, .phaseClosedMoon,
              .newMoon, .fullMoon, .firstQuarter, .lastQuarter:
             return [.moon]
+        case .dayGeometryCrossover:
+            return [.day]
         case .phaseClosedQuarterMoon:
             return [.quarterMoon]
         case .dayBoundary, .halfDayBoundary, .phaseClosedDay:
@@ -320,6 +359,7 @@ public struct SnapshotStats: Sendable {
         case .manual:                  return "Exochronometer · snapshot"
         case .yearGeometryPeak:        return "△ Year geometry peak" + peakingSuffix(yearPeakingShapes)
         case .moonGeometryPeak:        return "△ Moon geometry peak" + peakingSuffix(moonPeakingShapes)
+        case .dayGeometryCrossover:    return "◐ Day geometry crossover" + peakingSuffix(dayPeakingShapes)
         case .newMoon:                 return "🌑 New Moon"
         case .fullMoon:                return "🌕 Full Moon"
         case .firstQuarter:            return "🌓 First Quarter"

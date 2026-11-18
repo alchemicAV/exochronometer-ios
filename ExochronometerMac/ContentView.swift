@@ -1029,9 +1029,11 @@ private struct TriggerDriver<Canvas: View>: View {
         let content = canvasBuilder(captureDate)
         let caption = stats.formatCaption(trigger: trigger)
         let captionHadURL = TriggerDriver.containsURL(caption)
-        // When chords are active, their detail goes in a threaded reply
+        let isClockTower = (trigger == .dayGeometryCrossover)
+        // The clock tower posts a self-contained caption and never threads a
+        // chord-detail reply; everything else threads chords as a text reply
         // (text-only) so the main caption stays uncrowded.
-        let chordDetail = stats.currentChords.isEmpty ? nil : stats.formatChordDetail()
+        let chordDetail = (isClockTower || stats.currentChords.isEmpty) ? nil : stats.formatChordDetail()
         do {
             let artifact = try SnapshotEngine.shared.capture(
                 content: content,
@@ -1040,12 +1042,17 @@ private struct TriggerDriver<Canvas: View>: View {
                 stats: stats
             )
             // Disk write succeeded; now attempt social posts if enabled.
-            let shouldPostX = evaluator.postToX
-            let shouldPostDelvetown = evaluator.postToDelvetown
-            if shouldPostX || shouldPostDelvetown {
+            // The day-circle crossover is isolated: it posts ONLY to the
+            // clock-tower account, never to X or Octavia. Everything else
+            // keeps the X + Delvetown(Octavia) routes.
+            let shouldPostX = isClockTower ? false : evaluator.postToX
+            let shouldPostDelvetown = isClockTower ? false : evaluator.postToDelvetown
+            let shouldPostClockTower = isClockTower ? evaluator.postToClockTower : false
+            if shouldPostX || shouldPostDelvetown || shouldPostClockTower {
                 Task { @MainActor in
                     var xState: TriggerEvaluator.XPostState = .notAttempted
                     var dtState: TriggerEvaluator.DelvetownPostState = .notAttempted
+                    var ctState: TriggerEvaluator.DelvetownPostState = .notAttempted
                     if shouldPostX {
                         xState = await Self.postToX(
                             imageURL: artifact.imageURL,
@@ -1060,6 +1067,12 @@ private struct TriggerDriver<Canvas: View>: View {
                             chordDetail: chordDetail
                         )
                     }
+                    if shouldPostClockTower {
+                        ctState = await Self.postToClockTower(
+                            imageURL: artifact.imageURL,
+                            caption: caption
+                        )
+                    }
                     evaluator.recordFiring(
                         trigger,
                         at: captureDate,
@@ -1067,6 +1080,7 @@ private struct TriggerDriver<Canvas: View>: View {
                         wroteToDisk: true,
                         xPostState: xState,
                         delvetownPostState: dtState,
+                        clockTowerPostState: ctState,
                         captionHadURL: captionHadURL
                     )
                     // Mirror every successful post into the journal: a
@@ -1079,6 +1093,11 @@ private struct TriggerDriver<Canvas: View>: View {
                     }
                     if case .posted(let postURL) = dtState {
                         let note = "Delvetown post · \(stats.triggerLabel(for: trigger)) · \(xPostNoteStamp.string(from: captureDate))"
+                            + "\n\(postURL.absoluteString)"
+                        SnapshotService.capture(at: captureDate, note: note, in: modelContext)
+                    }
+                    if case .posted(let postURL) = ctState {
+                        let note = "Clock Tower post · \(stats.triggerLabel(for: trigger)) · \(xPostNoteStamp.string(from: captureDate))"
                             + "\n\(postURL.absoluteString)"
                         SnapshotService.capture(at: captureDate, note: note, in: modelContext)
                     }
@@ -1180,6 +1199,28 @@ private struct TriggerDriver<Canvas: View>: View {
                     print("[Delvetown] chord-detail reply failed: \(error.localizedDescription)")
                 }
             }
+            return .posted(postURL: result.postURL)
+        } catch {
+            return .failed(message: error.localizedDescription)
+        }
+    }
+
+    /// Read the PNG, upload it to the clock-tower account on delve.town,
+    /// create the post record. Identical to `postToDelvetown` but uses the
+    /// clock-tower session and posts text+image only (no threaded reply).
+    @MainActor
+    private static func postToClockTower(
+        imageURL: URL,
+        caption: String
+    ) async -> TriggerEvaluator.DelvetownPostState {
+        guard case .signedIn = ClockTowerAuthService.shared.authState else {
+            return .failed(message: "Not signed in to Clock Tower account")
+        }
+        guard let png = try? Data(contentsOf: imageURL) else {
+            return .failed(message: "Could not read PNG at \(imageURL.lastPathComponent)")
+        }
+        do {
+            let result = try await ClockTowerAPIClient.shared.post(text: caption, imagePNG: png)
             return .posted(postURL: result.postURL)
         } catch {
             return .failed(message: error.localizedDescription)

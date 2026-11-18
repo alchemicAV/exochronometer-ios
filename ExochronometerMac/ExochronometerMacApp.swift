@@ -23,6 +23,7 @@ struct ExochronometerMacApp: App {
                     await Task.detached(priority: .utility) {
                         XKeychain.preload()
                         DelvetownKeychain.preload()
+                        ClockTowerKeychain.preload()
                     }.value
                 }
         }

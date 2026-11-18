@@ -18,6 +18,8 @@ struct TriggerSettingsView: View {
     @ObservedObject private var xAuth = XAuthService.shared
     @State private var showingDelvetownConfigure: Bool = false
     @ObservedObject private var delvetownAuth = DelvetownAuthService.shared
+    @State private var showingClockTowerConfigure: Bool = false
+    @ObservedObject private var clockTowerAuth = ClockTowerAuthService.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -25,7 +27,7 @@ struct TriggerSettingsView: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    section(title: "Geometry Peak", kinds: [.yearGeometryPeak, .moonGeometryPeak])
+                    section(title: "Geometry", kinds: [.yearGeometryPeak, .moonGeometryPeak, .dayGeometryCrossover])
                     section(title: "Periodic", kinds: [.dayBoundary, .halfDayBoundary])
                     section(title: "Threshold (entry only)", kinds: [.dissonanceHigh, .dissonanceLow, .entropyHigh, .entropyLow])
                     section(title: "Extreme (with peak detection)", kinds: [.dissonanceExtremeHigh, .dissonanceExtremeLow, .entropyExtremeHigh, .entropyExtremeLow])
@@ -76,6 +78,19 @@ struct TriggerSettingsView: View {
                 .sheet(isPresented: $showingDelvetownConfigure) {
                     DelvetownConfigureView()
                 }
+                Button {
+                    showingClockTowerConfigure = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: clockTowerConnectedIcon)
+                        Text(clockTowerConnectedLabel)
+                    }
+                }
+                .controlSize(.small)
+                .help("Configure Clock Tower (second delve.town account for the day-circle crossover). Sign in, test post, manage credentials.")
+                .sheet(isPresented: $showingClockTowerConfigure) {
+                    ClockTowerConfigureView()
+                }
             }
             HStack(spacing: 14) {
                 Toggle("Dry run", isOn: $evaluator.dryRun)
@@ -92,6 +107,11 @@ struct TriggerSettingsView: View {
                     .controlSize(.mini)
                     .help("When on, each trigger fire crossposts to delve.town via ATProto. Independent of Post to X.")
                     .disabled(!(isDelvetownSignedIn))
+                Toggle("Post to Clock Tower", isOn: $evaluator.postToClockTower)
+                    .toggleStyle(.switch)
+                    .controlSize(.mini)
+                    .help("When on, the Day Geometry Crossover trigger posts to the clock-tower delve.town account. Isolated from Post to X and Post to Delvetown.")
+                    .disabled(!(isClockTowerSignedIn))
                 Spacer()
             }
             HStack(spacing: 6) {
@@ -117,6 +137,11 @@ struct TriggerSettingsView: View {
 
     private var isDelvetownSignedIn: Bool {
         if case .signedIn = delvetownAuth.authState { return true }
+        return false
+    }
+
+    private var isClockTowerSignedIn: Bool {
+        if case .signedIn = clockTowerAuth.authState { return true }
         return false
     }
 
@@ -190,6 +215,24 @@ struct TriggerSettingsView: View {
         case .authorizing:     return "Delvetown · signing in"
         case .error:           return "Delvetown · error"
         case .signedOut:       return "Configure Delvetown"
+        }
+    }
+
+    private var clockTowerConnectedIcon: String {
+        switch clockTowerAuth.authState {
+        case .signedIn:    return "checkmark.circle.fill"
+        case .authorizing: return "person.crop.circle.badge.clock"
+        case .error:       return "exclamationmark.triangle.fill"
+        case .signedOut:   return "person.crop.circle.badge.xmark"
+        }
+    }
+
+    private var clockTowerConnectedLabel: String {
+        switch clockTowerAuth.authState {
+        case .signedIn(let h): return "Clock Tower · @\(h)"
+        case .authorizing:     return "Clock Tower · signing in"
+        case .error:           return "Clock Tower · error"
+        case .signedOut:       return "Configure Clock Tower"
         }
     }
 
@@ -613,6 +656,7 @@ struct TriggerSettingsView: View {
                 .foregroundStyle(record.wroteToDisk ? Color.accentColor : Color.secondary)
             xStatusIcon(record: record)
             delvetownStatusIcon(record: record)
+            clockTowerStatusIcon(record: record)
             if record.captionHadURL {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 8))
@@ -671,6 +715,26 @@ struct TriggerSettingsView: View {
                 .font(.system(size: 9))
                 .foregroundStyle(.red)
                 .help("Delvetown post failed: \(msg)")
+        }
+    }
+
+    @ViewBuilder
+    private func clockTowerStatusIcon(record: TriggerEvaluator.FiringRecord) -> some View {
+        switch record.clockTowerPostState {
+        case .notAttempted:
+            EmptyView()
+        case .posted(let url):
+            Link(destination: url) {
+                Image(systemName: "checkmark.square.fill")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.green)
+            }
+            .help("Posted to Clock Tower — click to open")
+        case .failed(let msg):
+            Image(systemName: "xmark.square.fill")
+                .font(.system(size: 9))
+                .foregroundStyle(.red)
+                .help("Clock Tower post failed: \(msg)")
         }
     }
 

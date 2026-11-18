@@ -9,7 +9,7 @@ import ExochronometerCore
 /// changing this enum.
 public enum SnapshotTrigger: String, Codable, CaseIterable, Sendable {
     case manual
-    case yearGeometryPeak, moonGeometryPeak
+    case yearGeometryPeak, moonGeometryPeak, dayGeometryCrossover
     case dayBoundary, halfDayBoundary
     case dissonanceHigh, dissonanceLow
     case dissonanceExtremeHigh, dissonanceExtremeLow
@@ -39,6 +39,7 @@ public enum SnapshotTrigger: String, Codable, CaseIterable, Sendable {
         case .manual:                  return "Manual"
         case .yearGeometryPeak:        return "Year Geometry Peak"
         case .moonGeometryPeak:        return "Moon Geometry Peak"
+        case .dayGeometryCrossover:    return "Day Geometry Crossover"
         case .newMoon:                 return "New Moon (legacy)"
         case .fullMoon:                return "Full Moon (legacy)"
         case .firstQuarter:            return "First Quarter (legacy)"
@@ -75,6 +76,7 @@ public enum SnapshotTrigger: String, Codable, CaseIterable, Sendable {
         case .manual:                  return 0
         case .yearGeometryPeak:        return 1800   // year peaks are sparse (~weeks apart)
         case .moonGeometryPeak:        return 1800   // moon peaks are sparse (~days apart)
+        case .dayGeometryCrossover:    return 300    // ~22/day; segments are ≥~20 min apart
         case .newMoon, .fullMoon, .firstQuarter, .lastQuarter:
                                        return 12 * 3600   // legacy
         case .yearBoundary:            return 24 * 3600   // legacy

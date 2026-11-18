@@ -6,6 +6,15 @@ public struct ChordMatch: Sendable, Hashable {
     public let pattern: ChordPattern
     public let tones: [HarmonicTone]
     public let fitCents: Double
+    /// Closest A=432 JI note to the chord root (its lowest-frequency tone),
+    /// plus the signed cents offset of the root from that note.
+    public let rootNote: String
+    public let rootCentsDelta: Double
+
+    /// e.g. "E +3¢"
+    public var rootLabel: String {
+        "\(rootNote) \(String(format: "%+.0f", rootCentsDelta))¢"
+    }
 
     public var id: String {
         "\(pattern.abbreviation)|" + tones.map(\.id).joined(separator: ",")
@@ -90,6 +99,7 @@ public enum ChordDetector {
         guard tones.count == pattern.toneCount else { return nil }
         let sorted = tones.sorted { $0.frequency < $1.frequency }
         let root = sorted[0].frequency
+        let rootNote = JustIntonation.closestNote(frequency: root)
 
         let actualIntervals: [Double] = sorted.map { tone in
             tone.frequency == root ? 0 : 1200 * log2(tone.frequency / root)
@@ -106,7 +116,13 @@ public enum ChordDetector {
             if dist > tolerance { return nil }
             totalError += dist
         }
-        return ChordMatch(pattern: pattern, tones: sorted, fitCents: totalError)
+        return ChordMatch(
+            pattern: pattern,
+            tones: sorted,
+            fitCents: totalError,
+            rootNote: rootNote.noteName,
+            rootCentsDelta: rootNote.centsDelta
+        )
     }
 
     private static func octaveReduce(_ cents: Double) -> Double {

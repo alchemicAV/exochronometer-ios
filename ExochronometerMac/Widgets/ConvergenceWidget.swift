@@ -160,7 +160,7 @@ struct ConvergenceWidgetView: View {
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.85))
             }
-            Text(fitText(match.fitCents))
+            Text(match.rootLabel + "  ·  " + fitText(match.fitCents))
                 .font(.system(size: 8, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.35))
         }
@@ -198,6 +198,7 @@ struct ConvergenceWidgetView: View {
                     .foregroundStyle(.white.opacity(0.85))
             }
             HStack(spacing: 10) {
+                Text(event.rootLabel)
                 Text(fitText(event.fitCents))
                 Text("dur \(durationText(event.endTime.timeIntervalSince(event.startTime)))")
             }

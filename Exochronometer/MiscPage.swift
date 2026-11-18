@@ -1511,7 +1511,7 @@ private struct ConvergenceView: View {
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.7))
             Spacer()
-            Text("fit \(String(format: "%.1f", match.fitCents))¢")
+            Text(match.rootLabel + "  ·  fit \(String(format: "%.1f", match.fitCents))¢")
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.55))
         }
@@ -1532,6 +1532,7 @@ private struct ConvergenceView: View {
                     .foregroundStyle(.white.opacity(0.85))
             }
             HStack(spacing: 10) {
+                Text(event.rootLabel)
                 Text("fit \(String(format: "%.1f", event.fitCents))¢")
                 Text("dur \(durationText(event.endTime.timeIntervalSince(event.startTime)))")
             }

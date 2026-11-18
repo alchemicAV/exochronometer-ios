@@ -111,16 +111,15 @@ public struct SnapshotStats: Sendable {
                 let sigs = match.tones.map { tone in
                     "\(Self.shortName(tone.timeframe))\(tone.divisionLabel)"
                 }
-                // Root is the lowest-frequency tone of the match; snap it
-                // to the nearest A=432 JI note for a readable label.
-                let rootFreq = match.tones.min(by: { $0.frequency < $1.frequency })?.frequency ?? 0
-                let root = JustIntonation.closestNote(frequency: rootFreq)
+                // Root note is derived in ChordDetector.match (lowest-frequency
+                // tone snapped to the nearest A=432 JI note); reuse it so the
+                // post label and the app-wide chord views share one source.
                 return ActiveChord(
                     abbreviation: match.pattern.abbreviation,
                     name: match.pattern.name,
                     toneSignatures: sigs,
-                    rootNote: root.noteName,
-                    rootCentsDelta: root.centsDelta,
+                    rootNote: match.rootNote,
+                    rootCentsDelta: match.rootCentsDelta,
                     fitCents: match.fitCents
                 )
             }

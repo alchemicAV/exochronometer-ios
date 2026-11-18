@@ -12,6 +12,15 @@ public struct ChordEvent: Sendable, Hashable, Identifiable {
     public let endTime: Date
     public let fitCents: Double
     public let peakAmplitudeProduct: Double
+    /// Closest A=432 JI note to the chord root (its lowest-frequency tone),
+    /// plus the signed cents offset of the root from that note.
+    public let rootNote: String
+    public let rootCentsDelta: Double
+
+    /// e.g. "E +3¢"
+    public var rootLabel: String {
+        "\(rootNote) \(String(format: "%+.0f", rootCentsDelta))¢"
+    }
 
     public var id: String {
         let sig = toneSignature.map { "\($0.timeframe.rawValue).\($0.divisionLabel)" }
@@ -134,6 +143,8 @@ public enum ChordProjector {
                         continue
                     }
                     if let open = openEvents.removeValue(forKey: key) {
+                        let rootFreq = cand.inner.tones.map(\.frequency).min() ?? 0
+                        let root = JustIntonation.closestNote(frequency: rootFreq)
                         events.append(ChordEvent(
                             pattern: cand.inner.pattern,
                             toneSignature: cand.inner.tones.map {
@@ -143,7 +154,9 @@ public enum ChordProjector {
                             peakTime: open.peakTime,
                             endTime: open.endTime,
                             fitCents: cand.inner.fitCents,
-                            peakAmplitudeProduct: open.peakAmplitudeProduct
+                            peakAmplitudeProduct: open.peakAmplitudeProduct,
+                            rootNote: root.noteName,
+                            rootCentsDelta: root.centsDelta
                         ))
                     }
                 }

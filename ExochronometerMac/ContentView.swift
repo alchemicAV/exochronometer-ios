@@ -1220,7 +1220,11 @@ private struct TriggerDriver<Canvas: View>: View {
             return .failed(message: "Could not read PNG at \(imageURL.lastPathComponent)")
         }
         do {
-            let result = try await ClockTowerAPIClient.shared.post(text: caption, imagePNG: png)
+            let result = try await ClockTowerAPIClient.shared.post(
+                text: caption,
+                imagePNG: png,
+                alt: "Picture dashboard of the Exochronometer - data in the post."
+            )
             return .posted(postURL: result.postURL)
         } catch {
             return .failed(message: error.localizedDescription)

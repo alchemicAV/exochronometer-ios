@@ -26,12 +26,12 @@ final class ClockTowerAPIClient {
         let postURL: URL
     }
 
-    /// Create a post with optional image, optionally threaded as a reply to
-    /// `replyTo`.
-    func post(text: String, imagePNG: Data?, replyTo: PostResult? = nil) async throws -> PostResult {
+    /// Create a post with optional image (and its alt text), optionally
+    /// threaded as a reply to `replyTo`.
+    func post(text: String, imagePNG: Data?, alt: String = "", replyTo: PostResult? = nil) async throws -> PostResult {
         var embed: [String: Any]? = nil
         if let imagePNG {
-            embed = try await makeImageEmbed(pngData: imagePNG)
+            embed = try await makeImageEmbed(pngData: imagePNG, alt: alt)
         }
         return try await createRecord(text: text, embed: embed, replyTo: replyTo)
     }
@@ -42,7 +42,7 @@ final class ClockTowerAPIClient {
     /// The record validator caps an embedded image at ~2 MB — well below the
     /// PDS's general 5 MB blob ceiling — so anything near that limit is
     /// recompressed to JPEG first.
-    private func makeImageEmbed(pngData: Data) async throws -> [String: Any] {
+    private func makeImageEmbed(pngData: Data, alt: String) async throws -> [String: Any] {
         let (payload, mimeType) = Self.imagePayload(forPNG: pngData)
         let blob = try await uploadBlob(payload, mimeType: mimeType)
         // upload_blob returns { "blob": { "$type": "blob", "ref": { "$link": <cid> }, "mimeType": …, "size": N } }
@@ -59,7 +59,7 @@ final class ClockTowerAPIClient {
         ]
         // Image entry with alt text + pixel aspect ratio. Live delve.town
         // image posts all carry aspectRatio; some validators require it.
-        var imageEntry: [String: Any] = ["image": image, "alt": ""]
+        var imageEntry: [String: Any] = ["image": image, "alt": alt]
         if let dims = Self.imageDimensions(payload) {
             imageEntry["aspectRatio"] = ["width": dims.width, "height": dims.height]
         }

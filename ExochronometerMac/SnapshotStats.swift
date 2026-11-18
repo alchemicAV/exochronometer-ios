@@ -6,6 +6,11 @@ import ExochronometerCore
 /// detect events; the capture pipeline uses it to write the post caption.
 public struct SnapshotStats: Sendable {
     public let date: Date
+    /// Chord-filter settings this snapshot was built with. Stored so the
+    /// clock-tower caption's "next chord" forward-search uses the same
+    /// settings as the active-chord list, keeping the two consistent.
+    public let chordExcludeHourly: Bool
+    public let chordIncludeFundamentals: Bool
     public let activeToneCount: Int
     public let pairCount: Int
     public let tenneyPerPair: Double
@@ -56,6 +61,8 @@ public struct SnapshotStats: Sendable {
         chordIncludeFundamentals: Bool = false
     ) {
         self.date = date
+        self.chordExcludeHourly = chordExcludeHourly
+        self.chordIncludeFundamentals = chordIncludeFundamentals
         let assignments: [ToneAssignment] = [
             ToneAssignment(timeframe: .hour,        scale: 23),
             ToneAssignment(timeframe: .day,         scale: 26),
@@ -256,36 +263,92 @@ public struct SnapshotStats: Sendable {
         return lines.joined(separator: "\n")
     }
 
-    /// Clock-tower caption for the day-circle crossover. Reports the
+    /// Clock-tower caption for the day-circle crossover. Reports, in order:
     /// wall-clock time and Gregorian date (both UTC, matching the rest of
-    /// the system), the exochronometer date (peak-calendar month + day),
-    /// the day-circle angle + `Dia`-named segment, and the geometry active
-    /// on the day circle at the crossing.
+    /// the system); the exochronometer (year) date with its angle; the lunar
+    /// calendar phase (moon-circle segment) with its angle; the day-circle
+    /// angle + `Dia`-named segment; the active day geometry; the Tenney
+    /// height and dissonance reading; the active chords; and the next
+    /// upcoming chord with the time until it plays. Every line that carries
+    /// an angle puts the angle first.
     public func formatClockTowerCaption() -> String {
         var lines: [String] = []
+        func field(_ label: String) -> String {
+            let width = 16
+            return label.count >= width
+                ? label + " "
+                : label + String(repeating: " ", count: width - label.count) + " "
+        }
 
         let timeFormatter = DateFormatter()
         timeFormatter.dateFormat = "HH:mm:ss"
         timeFormatter.timeZone = TimeZone(identifier: "UTC")
-        lines.append("Current Time:    \(timeFormatter.string(from: date)) UTC")
+        lines.append(field("Current Time:") + timeFormatter.string(from: date) + " UTC")
 
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         dateFormatter.timeZone = TimeZone(identifier: "UTC")
-        lines.append("Gregorian Date:  \(dateFormatter.string(from: date))")
+        lines.append(field("Gregorian Date:") + dateFormatter.string(from: date))
 
+        // Exochronometer (year) date + year-circle angle.
         let pos = PeakCalendar.position(at: date)
-        let month = PeakCalendar.months[pos.monthIndex]
-        lines.append("Exo Date:        \(month.name) · Day \(pos.dayOfMonth)")
+        let yearMonth = PeakCalendar.months[pos.monthIndex]
+        let yearDeg = TimeFrame.year.degree(at: date)
+        lines.append(field("Exo Date:") + String(format: "%.1f° · %@ · Day %d", yearDeg, yearMonth.name, pos.dayOfMonth))
 
-        let deg = TimeFrame.day.degree(at: date)
-        let seg = PeakCalendar.diaSegmentName(at: date)
-        lines.append(String(format: "Day Circle:      %.1f° · %@", deg, seg))
+        // Lunar calendar phase (moon-circle segment) + moon angle.
+        let moonDeg = TimeFrame.moon.degree(at: date)
+        let moonSeg = PeakCalendar.segmentName(forFraction: moonDeg / 360.0, prefix: "Lun")
+        lines.append(field("Lun Phase:") + String(format: "%.1f° · %@", moonDeg, moonSeg))
+
+        // Day-circle angle + Dia-named segment.
+        let dayDeg = TimeFrame.day.degree(at: date)
+        let daySeg = PeakCalendar.segmentName(forFraction: dayDeg / 360.0, prefix: "Dia")
+        lines.append(field("Day Circle:") + String(format: "%.1f° · %@", dayDeg, daySeg))
 
         let geo = dayPeakingShapes.sorted().joined(separator: " · ")
-        lines.append("Active Geometry: \(geo.isEmpty ? "—" : geo)")
+        lines.append(field("Active Geometry:") + (geo.isEmpty ? "—" : geo))
+
+        lines.append(field("Tenney Height:") + String(format: "%.2f TH", tenneyPerPair))
+        lines.append(field("Dissonance:") + "\(tenneyMeterPercent)%")
+
+        let activeChords = currentChords.map { $0.abbreviation }.joined(separator: " · ")
+        lines.append(field("Chords:") + (activeChords.isEmpty ? "none" : activeChords))
+
+        // Next upcoming chord — forward-search with the same chord-filter
+        // settings the active list was built with, so the two stay coherent.
+        let next = ChordProjector.upcoming(
+            from: date,
+            lookahead: 30 * 86400,
+            includeFundamentals: chordIncludeFundamentals,
+            crossTimeframeOnly: true,
+            excludeHourly: chordExcludeHourly,
+            patterns: ChordCatalog.chords,
+            maxResults: 1
+        ).first
+        if let next {
+            let wait = max(0, next.startTime.timeIntervalSince(date))
+            lines.append(field("Next Chord:") + "\(next.pattern.abbreviation) in \(Self.clockTowerDuration(wait))")
+        } else {
+            lines.append(field("Next Chord:") + "none")
+        }
 
         return lines.joined(separator: "\n")
+    }
+
+    /// Compact human duration ("42s", "12m", "1h 12m", "3d 4h") for the
+    /// "next chord in …" field.
+    private static func clockTowerDuration(_ s: TimeInterval) -> String {
+        if s < 60 { return String(format: "%.0fs", s) }
+        if s < 3600 { return String(format: "%.0fm", floor(s / 60)) }
+        if s < 86400 {
+            let h = floor(s / 3600)
+            let m = floor(s.truncatingRemainder(dividingBy: 3600) / 60)
+            return String(format: "%.0fh %.0fm", h, m)
+        }
+        let d = floor(s / 86400)
+        let h = floor(s.truncatingRemainder(dividingBy: 86400) / 3600)
+        return String(format: "%.0fd %.0fh", d, h)
     }
 
     /// Human label for the trigger at this instant. Geometry-peak triggers

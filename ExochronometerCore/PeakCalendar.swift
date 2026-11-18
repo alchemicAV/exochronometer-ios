@@ -95,14 +95,15 @@ public enum PeakCalendar {
         return index
     }
 
-    /// Day-circle segment name: `"Dia"` + the peak-calendar month name
-    /// whose opening vertex matches the current day segment. The day circle
-    /// is the same Farey_8 geometry as the year, so the segment opening at
-    /// 315° (7/8, the `Octoz` peak) is `DiaOctoz`; the two mirror points are
-    /// `DiaInitia` (0°) and `DiaMeridia` (180°).
-    public static func diaSegmentName(at date: Date) -> String {
-        let frac = TimeFrame.day.degree(at: date) / 360.0
-        return "Dia" + months[monthIndex(forFraction: frac)].name
+    /// Segment name for an arbitrary circle fraction with a circle prefix.
+    /// The year, moon, day, hour and minute circles all share the Farey_8
+    /// geometry, so the same 22 segments apply on every circle — only the
+    /// prefix labels which circle ("" for the year, "Lun" for the moon,
+    /// "Dia" for the day). The segment opening at 315° (7/8, the `Octoz`
+    /// peak) reads `Octoz` / `LunOctoz` / `DiaOctoz`; 0° is `Initia` and
+    /// 180° is `Meridia` regardless of circle.
+    public static func segmentName(forFraction fraction: Double, prefix: String) -> String {
+        prefix + months[monthIndex(forFraction: fraction)].name
     }
 
     /// The next instant at which ``position(at:)`` reports a different

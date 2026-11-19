@@ -1502,7 +1502,7 @@ private struct ConvergenceView: View {
 
     private func currentRow(_ match: ChordMatch) -> some View {
         HStack {
-            Text(match.pattern.abbreviation)
+            Text("\(match.pattern.abbreviation) · \(match.rootNote)")
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundStyle(.white)
             Text(signatureText(match.tones.map {
@@ -1511,7 +1511,7 @@ private struct ConvergenceView: View {
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.7))
             Spacer()
-            Text(match.rootLabel + "  ·  fit \(String(format: "%.1f", match.fitCents))¢")
+            Text(String(format: "root %+.0f¢ · fit %.1f¢", match.rootCentsDelta, match.fitCents))
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.55))
         }
@@ -1520,7 +1520,7 @@ private struct ConvergenceView: View {
     private func upcomingRow(_ event: ChordEvent, now: Date) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack {
-                Text(event.pattern.abbreviation)
+                Text("\(event.pattern.abbreviation) · \(event.rootNote)")
                     .font(.system(size: 12, weight: .medium, design: .monospaced))
                     .foregroundStyle(.white)
                 Text(signatureText(event.toneSignature))
@@ -1532,7 +1532,7 @@ private struct ConvergenceView: View {
                     .foregroundStyle(.white.opacity(0.85))
             }
             HStack(spacing: 10) {
-                Text(event.rootLabel)
+                Text(String(format: "root %+.0f¢", event.rootCentsDelta))
                 Text("fit \(String(format: "%.1f", event.fitCents))¢")
                 Text("dur \(durationText(event.endTime.timeIntervalSince(event.startTime)))")
             }

@@ -311,7 +311,7 @@ public struct SnapshotStats: Sendable {
         lines.append(field("Tenney Height:") + String(format: "%.2f TH", tenneyPerPair))
         lines.append(field("Dissonance:") + "\(tenneyMeterPercent)%")
 
-        let activeChords = currentChords.map { $0.abbreviation }.joined(separator: " · ")
+        let activeChords = currentChords.map { "\($0.abbreviation)·\($0.rootNote)" }.joined(separator: " · ")
         lines.append(field("Chords:") + (activeChords.isEmpty ? "none" : activeChords))
 
         // Next upcoming chord — forward-search with the same chord-filter
@@ -327,7 +327,7 @@ public struct SnapshotStats: Sendable {
         ).first
         if let next {
             let wait = max(0, next.startTime.timeIntervalSince(date))
-            lines.append(field("Next Chord:") + "\(next.pattern.abbreviation) in \(Self.clockTowerDuration(wait))")
+            lines.append(field("Next Chord:") + "\(next.pattern.abbreviation)·\(next.rootNote) in \(Self.clockTowerDuration(wait))")
         } else {
             lines.append(field("Next Chord:") + "none")
         }

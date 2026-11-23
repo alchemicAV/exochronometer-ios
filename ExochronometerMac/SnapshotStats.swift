@@ -63,14 +63,14 @@ public struct SnapshotStats: Sendable {
         self.date = date
         self.chordExcludeHourly = chordExcludeHourly
         self.chordIncludeFundamentals = chordIncludeFundamentals
-        let assignments: [ToneAssignment] = [
-            ToneAssignment(timeframe: .hour,        scale: 23),
-            ToneAssignment(timeframe: .day,         scale: 26),
-            ToneAssignment(timeframe: .quarterMoon, scale: 28),
-            ToneAssignment(timeframe: .moon,        scale: 29),
-            ToneAssignment(timeframe: .year,        scale: 29),
-        ]
-        let rawAll = HarmonicAnalysis.activeTones(at: date, assignments: assignments)
+        // Tenney/entropy must match the dissonance widget's meters exactly, so
+        // use its single octave (scale 23). The harmonic-analysis "merged"
+        // per-timeframe octaves (23/26/28/29/29) are NOT octave-invariant for
+        // these per-pair sums: shifting a timeframe by whole octaves can invert
+        // a cross-timeframe pair's hi/lo ratio, which flips the octave-reduced
+        // interval to its complement and drifts the posted reading off what the
+        // widget displays (the 0.254-vs-0.257 entropy split).
+        let rawAll = HarmonicAnalysis.activeTones(at: date, scales: [23])
         let tones = rawAll.filter { !$0.isFundamental }   // overtones drive dissonance
 
         self.activeToneCount = tones.count

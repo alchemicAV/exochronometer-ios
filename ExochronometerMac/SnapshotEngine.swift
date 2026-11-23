@@ -151,7 +151,10 @@ public final class SnapshotEngine {
         }
 
         let now = Date()
-        let base = filenameBase(for: trigger, at: now)
+        // Name the files from the stats' own instant (not the render-completion
+        // wall clock) so the saved PNG/TXT timestamp, the image's readings and
+        // the caption all share one second.
+        let base = filenameBase(for: trigger, at: stats.date)
         let imageURL = outputDirectory.appendingPathComponent(base + ".png")
         let textURL  = outputDirectory.appendingPathComponent(base + ".txt")
 

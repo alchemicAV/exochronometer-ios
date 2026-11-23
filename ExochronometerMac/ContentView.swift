@@ -1026,7 +1026,10 @@ private struct TriggerDriver<Canvas: View>: View {
                 chordExcludeHourly: chordExcludeHourly,
                 chordIncludeFundamentals: chordIncludeFundamentals
               )
-        let content = canvasBuilder(captureDate)
+        // Single canonical instant: render the image from the exact date the
+        // stats (and therefore the caption) were computed at, so the pixel
+        // readings and the posted numbers can never disagree by a second.
+        let content = canvasBuilder(stats.date)
         let caption = stats.formatCaption(trigger: trigger)
         let captionHadURL = TriggerDriver.containsURL(caption)
         let isClockTower = (trigger == .dayGeometryCrossover)

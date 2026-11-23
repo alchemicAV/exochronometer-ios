@@ -273,7 +273,7 @@ public struct SnapshotStats: Sendable {
     public func formatClockTowerCaption() -> String {
         var lines: [String] = []
         func field(_ label: String) -> String {
-            let width = 16
+            let width = 22
             return label.count >= width
                 ? label + " "
                 : label + String(repeating: " ", count: width - label.count) + " "
@@ -306,10 +306,10 @@ public struct SnapshotStats: Sendable {
         lines.append(field("Day Circle:") + String(format: "%.1f° · %@", dayDeg, daySeg))
 
         let geo = dayPeakingShapes.sorted().joined(separator: " · ")
-        lines.append(field("Active Geometry:") + (geo.isEmpty ? "—" : geo))
+        lines.append(field("Active Geometry (Day):") + (geo.isEmpty ? "—" : geo))
 
-        lines.append(field("Tenney Height:") + String(format: "%.2f TH", tenneyPerPair))
-        lines.append(field("Dissonance:") + "\(tenneyMeterPercent)%")
+        lines.append(field("Tenney Height:") + String(format: "%.2f TH · %d%%", tenneyPerPair, tenneyMeterPercent))
+        lines.append(field("Dissonance:") + String(format: "%.3f HE", entropyPerPair))
 
         let activeChords = currentChords.map { "\($0.abbreviation)·\($0.rootNote)" }.joined(separator: " · ")
         lines.append(field("Chords:") + (activeChords.isEmpty ? "none" : activeChords))

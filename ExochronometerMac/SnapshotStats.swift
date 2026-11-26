@@ -320,7 +320,7 @@ public struct SnapshotStats: Sendable {
         lines.append(field("Active Geometry (Day):") + (geo.isEmpty ? "—" : geo))
 
         lines.append(field("Tenney Height:") + String(format: "%.2f TH · %d%%", tenneyPerPair, tenneyMeterPercent))
-        lines.append(field("Dissonance:") + String(format: "%.3f HE", entropyPerPair))
+        lines.append(field("Dissonance:") + String(format: "%.3f HE · %d%%", entropyPerPair, entropyMeterPercent))
 
         let activeChords = currentChords.map { "\($0.abbreviation)·\($0.rootNote)" }.joined(separator: " · ")
         lines.append(field("Chords:") + (activeChords.isEmpty ? "none" : activeChords))

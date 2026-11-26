@@ -278,11 +278,30 @@ public struct SnapshotStats: Sendable {
                 ? label + " "
                 : label + String(repeating: " ", count: width - label.count) + " "
         }
+        func hourLabel(for hour: Date) -> String {
+            let f = DateFormatter()
+            f.dateFormat = "HH:mm"
+            f.timeZone = TimeZone(identifier: "UTC")
+            return f.string(from: hour) + " UTC"
+        }
 
         let timeFormatter = DateFormatter()
         timeFormatter.dateFormat = "HH:mm:ss"
         timeFormatter.timeZone = TimeZone(identifier: "UTC")
         lines.append(field("Current Time:") + timeFormatter.string(from: date) + " UTC")
+
+        // Next clock strike (next UTC hour boundary) with countdown.
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        var comps = cal.dateComponents([.year, .month, .day, .hour], from: date)
+        comps.hour = (comps.hour ?? 0) + 1
+        comps.minute = 0; comps.second = 0; comps.nanosecond = 0
+        if let nextHour = cal.date(from: comps) {
+            let remaining = max(0, nextHour.timeIntervalSince(date))
+            let rh = Int(remaining) / 3600
+            let rm = (Int(remaining) % 3600) / 60
+            lines.append(field("Next hour:") + "\(hourLabel(for: nextHour)) · \(rh)h \(rm)m")
+        }
 
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
